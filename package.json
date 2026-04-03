@@ -1,0 +1,12 @@
+{
+  "name": "bottom-line-apparel",
+  "version": "1.0.0",
+  "description": "Bottom Line Apparel — queer-owned NYC apparel brand. Printify-powered storefront.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
