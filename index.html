@@ -21,10 +21,19 @@
   <meta name="twitter:image"       content="https://bottomlineapparel.com/og-cover.jpg" />
   <!-- Canonical -->
   <link rel="canonical" href="https://bottomlineapparel.com/" />
-  <!-- Fonts: Oswald + DM Sans (existing) + Cormorant Garamond (new luxury layer) -->
+  <!-- Font preloads — critical subsets for LCP reduction -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+  <!-- Stripe.js — loaded here so it's available before checkout (Stripe requires top-level load) -->
+  <script src="https://js.stripe.com/v3/" async></script>
+  <!-- Klaviyo — onsite JS for email capture, pop-ups, and event tracking -->
+  <script async type='text/javascript' src='https://static.klaviyo.com/onsite/js/WPcja9/klaviyo.js?company_id=WPcja9'></script>
+  <script type="text/javascript">
+    //Initialize Klaviyo object on page load
+    !function(){if(!window.klaviyo){window._klOnsite=window._klOnsite||[];try{window.klaviyo=new Proxy({},{get:function(n,i){return"push"===i?function(){var n;(n=window._klOnsite).push.apply(n,arguments)}:function(){for(var n=arguments.length,o=new Array(n),w=0;w<n;w++)o[w]=arguments[w];var t="function"==typeof o[o.length-1]?o.pop():void 0,e=new Promise((function(n){window._klOnsite.push([i].concat(o,[function(i){t&&t(i),n(i)}]))}));return e}}})}catch(n){window.klaviyo=window.klaviyo||[],window.klaviyo.push=function(){var n;(n=window._klOnsite).push.apply(n,arguments)}}}}();
+  </script>
   <link rel="stylesheet" href="styles.css" />
   <!-- Schema.org -->
   <script type="application/ld+json">
@@ -40,6 +49,22 @@
   </script>
 </head>
 <body>
+
+  <!-- Skip to content — keyboard / screen reader navigation -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ═══════════════════ SPLASH SCREEN ═══════════════════ -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash__inner">
+      <svg class="splash__logo" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <text x="0" y="35" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
+        <line x1="0" y1="41" x2="168" y2="41" stroke="white" stroke-width="3"/>
+        <text x="0" y="60" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
+      </svg>
+      <p class="splash__tagline">Your Ass Deserves a Punchline.</p>
+      <div class="splash__bar" aria-label="Loading"></div>
+    </div>
+  </div>
 
   <!-- ═══════════════════ ANNOUNCEMENT BAR ═══════════════════ -->
   <div class="announcement-bar" id="announcement-bar" role="banner" aria-label="Site announcement">
@@ -124,8 +149,9 @@
         <div class="modal__upsell-grid" id="modal-upsell-grid"></div>
       </div>
 
-      <form class="modal__form" id="modal-form" novalidate>
-        <p class="modal__form-heading">Reserve Your Shirt</p>
+      <!-- Step 1: Contact info -->
+      <div class="modal__step" id="modal-step-1">
+        <p class="modal__form-heading">Your Details</p>
         <div class="modal__form-row">
           <label for="modal-name" class="sr-only">Your name</label>
           <input type="text" id="modal-name" name="name" placeholder="Your name" autocomplete="name" required />
@@ -136,12 +162,46 @@
         </div>
         <input type="hidden" id="modal-selected-size" name="size" value="" />
         <input type="hidden" id="modal-product-id" name="product_id" value="" />
-        <button type="submit" class="btn btn--primary modal__submit" id="modal-submit-btn" disabled>
-          Reserve My Shirt →
+        <button type="button" class="btn btn--primary modal__submit" id="modal-step1-btn" disabled>
+          Continue to Payment →
         </button>
-        <p class="modal__disclaimer">We'll send you the Printful checkout link to complete your order. No spam, ever.</p>
+        <p class="modal__disclaimer">Order confirmed instantly. Fulfilled by Printful &amp; shipped to your door.</p>
         <p class="modal__msg" id="modal-msg" aria-live="polite"></p>
-      </form>
+      </div>
+
+      <!-- Step 2: Stripe payment -->
+      <div class="modal__step modal__step--payment" id="modal-step-2" hidden>
+        <button type="button" class="modal__back-btn" id="modal-back-btn" aria-label="Go back">← Back</button>
+        <div class="modal__order-summary" id="modal-order-summary">
+          <span class="edition-label" id="modal-summary-name">—</span>
+          <span class="modal__summary-sep">·</span>
+          <span id="modal-summary-size">—</span>
+          <span class="modal__summary-sep">·</span>
+          <strong id="modal-summary-price">$—</strong>
+        </div>
+        <div class="stripe-element-wrap">
+          <label class="stripe-element-label">Card Details</label>
+          <div id="stripe-payment-element">
+            <!-- Stripe Payment Element mounts here -->
+          </div>
+          <p class="stripe-element-error" id="stripe-error" role="alert" aria-live="polite"></p>
+        </div>
+        <button type="button" class="btn btn--primary modal__submit modal__pay-btn" id="modal-pay-btn" disabled>
+          Pay <span id="modal-pay-amount">$—</span> →
+        </button>
+        <div class="modal__secure-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Secured by Stripe. We never see your card number.
+        </div>
+
+        <!-- Success state (shown after payment) -->
+        <div class="modal__success" id="modal-success" hidden>
+          <div class="modal__success-icon" aria-hidden="true">✓</div>
+          <h3 class="modal__success-title">Order Confirmed!</h3>
+          <p class="modal__success-msg">Check your inbox for a confirmation email. Your shirt ships in 2–7 business days.</p>
+          <button type="button" class="btn btn--ghost" id="modal-success-close">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -197,11 +257,15 @@
           <li><a href="#join">Join</a></li>
         </ul>
       </nav>
+      <button type="button" class="cart-badge-btn" id="cart-badge-btn" aria-label="View cart (0 items)" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge-count" id="cart-badge-count">0</span>
+      </button>
       <a href="#tshirts" class="btn btn--primary header-cta magnetic-cta" id="header-cta">Shop the Drop</a>
     </div>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
 
     <!-- ═══════════════════ HERO ═══════════════════ -->
     <section class="hero" id="hero">
@@ -571,11 +635,88 @@
     <div class="footer-inner">
       <p>&copy; <span id="footer-year"></span> Bottom Line Apparel &middot; NYC &middot; <a href="https://tiktok.com/@bottomlineapparel" target="_blank" rel="noopener noreferrer">TikTok</a></p>
       <p class="footer-tagline edition-label">Your Ass Deserves a Punchline.</p>
+      <nav class="footer-legal" aria-label="Legal links">
+        <a href="/privacy">Privacy Policy</a>
+        <span aria-hidden="true">&middot;</span>
+        <a href="/terms">Terms of Service</a>
+        <span aria-hidden="true">&middot;</span>
+        <button type="button" class="footer-cookie-btn" id="footer-cookie-btn">Cookie Preferences</button>
+      </nav>
     </div>
   </footer>
 
   <!-- ═══════════════════ TOAST NOTIFICATIONS ═══════════════════ -->
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- ═══════════════════ COOKIE CONSENT BANNER ═══════════════════ -->
+  <div class="cookie-banner" id="cookie-banner" role="dialog" aria-modal="false" aria-label="Cookie consent" aria-live="polite" hidden>
+    <div class="cookie-banner__inner">
+      <div class="cookie-banner__text">
+        <p class="edition-label">Your Privacy Matters</p>
+        <p>We use cookies for analytics and personalized ads. Essential cookies are always on. You can accept all or manage your preferences.</p>
+        <a href="/privacy" class="cookie-banner__link">Privacy Policy</a>
+      </div>
+      <div class="cookie-banner__actions">
+        <button type="button" class="btn btn--ghost cookie-banner__manage" id="cookie-manage">Manage Preferences</button>
+        <button type="button" class="btn btn--secondary cookie-banner__decline" id="cookie-decline">Essential Only</button>
+        <button type="button" class="btn btn--primary cookie-banner__accept" id="cookie-accept">Accept All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cookie Preferences Modal -->
+  <div class="cookie-prefs" id="cookie-prefs" role="dialog" aria-modal="true" aria-labelledby="cookie-prefs-title" hidden>
+    <div class="cookie-prefs__backdrop" id="cookie-prefs-backdrop"></div>
+    <div class="cookie-prefs__panel">
+      <button type="button" class="modal__close" id="cookie-prefs-close" aria-label="Close preferences">×</button>
+      <h2 id="cookie-prefs-title" class="cookie-prefs__title">Cookie Preferences</h2>
+      <p class="cookie-prefs__desc">Choose which cookies you allow us to use. Your choice is saved for 1 year.</p>
+
+      <ul class="cookie-prefs__list">
+        <li class="cookie-prefs__item">
+          <div class="cookie-prefs__info">
+            <strong>Essential</strong>
+            <span>Session, cart, and security cookies. Always active.</span>
+          </div>
+          <span class="cookie-prefs__always">Always On</span>
+        </li>
+        <li class="cookie-prefs__item">
+          <div class="cookie-prefs__info">
+            <strong>Analytics</strong>
+            <span>Google Analytics — helps us understand how visitors use the site (anonymized).</span>
+          </div>
+          <label class="cookie-toggle" aria-label="Analytics cookies">
+            <input type="checkbox" id="pref-analytics" />
+            <span class="cookie-toggle__track"><span class="cookie-toggle__thumb"></span></span>
+          </label>
+        </li>
+        <li class="cookie-prefs__item">
+          <div class="cookie-prefs__info">
+            <strong>Marketing</strong>
+            <span>TikTok Pixel and Meta Pixel — used to measure ad performance and show relevant ads.</span>
+          </div>
+          <label class="cookie-toggle" aria-label="Marketing cookies">
+            <input type="checkbox" id="pref-marketing" />
+            <span class="cookie-toggle__track"><span class="cookie-toggle__thumb"></span></span>
+          </label>
+        </li>
+      </ul>
+
+      <div class="cookie-prefs__footer">
+        <button type="button" class="btn btn--primary" id="cookie-prefs-save">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics pixel config — IDs are public (not secrets).
+       Replace placeholder values with your real IDs before deploying.
+       These are only loaded after cookie consent is granted. -->
+  <script>
+    window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // Replace with real GA4 Measurement ID
+    window.BLA_TTQ_ID       = '';               // Replace with TikTok Pixel ID, or leave blank
+    window.BLA_META_ID      = '';               // Replace with Meta Pixel ID, or leave blank
+    window.BLA_STRIPE_PK    = 'pk_test_...';    // Replace with Stripe publishable key (safe for frontend)
+  </script>
 
   <script src="script.js"></script>
 </body>
