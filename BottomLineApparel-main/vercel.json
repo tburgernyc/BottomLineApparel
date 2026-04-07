@@ -12,7 +12,7 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://files.cdn.printful.com https://*.printful.com data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://a.klaviyo.com; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://static.klaviyo.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://files.cdn.printful.com https://*.printful.com data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://a.klaviyo.com https://api.stripe.com; frame-src 'self' https://js.stripe.com; frame-ancestors 'none';"
         }
       ]
     },
@@ -24,7 +24,7 @@
     }
   ],
   "functions": {
-    "api/products.js": { "maxDuration": 15 },
+    "api/products.js": { "maxDuration": 10 },
     "api/subscribe.js": { "maxDuration": 10 }
   }
 }
