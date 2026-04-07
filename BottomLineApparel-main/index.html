@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bottom Line Apparel — Your Ass Deserves a Punchline</title>
+  <meta name="description" content="Bottom Line Apparel is a queer-owned NYC brand serving gay men who like their tees unhinged, slightly cynical, and always loving. Shop the first drop." />
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://bottomlineapparel.com/" />
+  <meta property="og:title"       content="Bottom Line Apparel — Your Ass Deserves a Punchline" />
+  <meta property="og:description" content="Queer-owned NYC brand. Statement tees for gay men who want their shirts unhinged, slightly cynical, and always loving." />
+  <meta property="og:image"       content="https://bottomlineapparel.com/og-cover.jpg" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:site"        content="@bottomlineapparel" />
+  <meta name="twitter:title"       content="Bottom Line Apparel — Your Ass Deserves a Punchline" />
+  <meta name="twitter:description" content="Queer-owned NYC brand. Statement tees for gay men who want their shirts unhinged." />
+  <meta name="twitter:image"       content="https://bottomlineapparel.com/og-cover.jpg" />
+  <!-- Canonical -->
+  <link rel="canonical" href="https://bottomlineapparel.com/" />
+  <!-- Font preloads — critical subsets for LCP reduction -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+  <!-- Stripe.js — loaded here so it's available before checkout (Stripe requires top-level load) -->
+  <script src="https://js.stripe.com/v3/" async></script>
+  <!-- Klaviyo — onsite JS for email capture, pop-ups, and event tracking -->
+  <script async type="text/javascript" src="https://static.klaviyo.com/onsite/js/WPcja9/klaviyo.js?company_id=WPcja9"></script>
+  <script type="text/javascript">
+    //Initialize Klaviyo object on page load
+    !function(){if(!window.klaviyo){window._klOnsite=window._klOnsite||[];try{window.klaviyo=new Proxy({},{get:function(n,i){return"push"===i?function(){var n;(n=window._klOnsite).push.apply(n,arguments)}:function(){for(var n=arguments.length,o=new Array(n),w=0;w<n;w++)o[w]=arguments[w];var t="function"==typeof o[o.length-1]?o.pop():void 0,e=new Promise((function(n){window._klOnsite.push([i].concat(o,[function(i){t&&t(i),n(i)}]))}));return e}}})}catch(n){window.klaviyo=window.klaviyo||[],window.klaviyo.push=function(){var n;(n=window._klOnsite).push.apply(n,arguments)}}}}();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ClothingStore",
+    "name": "Bottom Line Apparel",
+    "url": "https://bottomlineapparel.com",
+    "description": "Queer-owned NYC apparel brand for gay men who like their tees unhinged, slightly cynical, and always loving.",
+    "foundingLocation": "New York City, NY",
+    "sameAs": ["https://www.tiktok.com/@bottomlineapparel"]
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Skip to content — keyboard / screen reader navigation -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ═══════════════════ SPLASH SCREEN ═══════════════════ -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash__inner">
+      <svg class="splash__logo" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <text x="0" y="35" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
+        <line x1="0" y1="41" x2="168" y2="41" stroke="white" stroke-width="3"/>
+        <text x="0" y="60" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
+      </svg>
+      <p class="splash__tagline">Your Ass Deserves a Punchline.</p>
+      <div class="splash__bar" aria-label="Loading"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ ANNOUNCEMENT BAR ═══════════════════ -->
+  <div class="announcement-bar" id="announcement-bar" role="banner" aria-label="Site announcement">
+    <div class="announcement-bar__track" aria-hidden="true">
+      <span class="announcement-bar__item">NYC Drop #001 &nbsp;·&nbsp; Limited Quantities</span>
+      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
+      <span class="announcement-bar__item">Free Shipping on Orders Over $75</span>
+      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
+      <span class="announcement-bar__item">Queer-Owned &nbsp;·&nbsp; NYC Made</span>
+      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
+      <span class="announcement-bar__item">NYC Drop #001 &nbsp;·&nbsp; Limited Quantities</span>
+      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
+      <span class="announcement-bar__item">Free Shipping on Orders Over $75</span>
+      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
+      <span class="announcement-bar__item">Queer-Owned &nbsp;·&nbsp; NYC Made</span>
+      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
+    </div>
+    <button class="announcement-bar__close" id="announcement-close" type="button" aria-label="Dismiss announcement">×</button>
+  </div>
+
+  <!-- Global looping video background -->
+  <video class="global-video-bg" src="video_4.mp4" autoplay loop muted playsinline aria-hidden="true"></video>
+
+  <!-- ═══════════════════ STICKY CART BAR ═══════════════════ -->
+  <div class="sticky-cart" id="sticky-cart" aria-label="Quick add to cart" role="complementary">
+    <div class="sticky-cart__inner">
+      <div class="sticky-cart__product">
+        <img id="sticky-cart-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="Featured tee" loading="lazy" width="52" height="52" />
+        <div class="sticky-cart__info">
+          <span class="sticky-cart__name" id="sticky-cart-name">Shop the Drop</span>
+          <span class="price-display sticky-cart__price" id="sticky-cart-price"></span>
+        </div>
+      </div>
+      <div class="sticky-cart__actions">
+        <select class="sticky-cart__size" id="sticky-cart-size" aria-label="Select size">
+          <option value="">Size</option>
+          <option value="XS">XS</option>
+          <option value="S">S</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="XL">XL</option>
+          <option value="2XL">2XL</option>
+        </select>
+        <button class="btn btn--primary sticky-cart__btn" id="sticky-cart-btn">Add to Cart →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ CHECKOUT MODAL ═══════════════════ -->
+  <div class="modal" id="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="modal-product-name" hidden>
+    <div class="modal__backdrop" id="modal-backdrop"></div>
+    <div class="modal__panel">
+      <button class="modal__close" id="modal-close" type="button" aria-label="Close checkout">×</button>
+
+      <div class="modal__product-summary">
+        <img id="modal-product-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="" loading="lazy" width="100" height="100" />
+        <div class="modal__product-meta">
+          <p class="edition-label">Limited Edition Drop</p>
+          <h3 class="modal__product-name" id="modal-product-name">—</h3>
+          <p class="price-display" id="modal-product-price">$—</p>
+        </div>
+      </div>
+
+      <div class="modal__size-section">
+        <p class="modal__size-label">Select Your Size</p>
+        <div class="size-grid" id="modal-size-grid">
+          <button class="size-tag" data-size="XS">XS</button>
+          <button class="size-tag" data-size="S">S</button>
+          <button class="size-tag" data-size="M">M</button>
+          <button class="size-tag" data-size="L">L</button>
+          <button class="size-tag" data-size="XL">XL</button>
+          <button class="size-tag" data-size="2XL">2XL</button>
+        </div>
+        <button class="btn btn--secondary btn--sm size-guide-trigger" id="modal-size-guide-btn" type="button">
+          Size Guide ↗
+        </button>
+      </div>
+
+      <!-- Upsell Hook -->
+      <div class="modal__upsell" id="modal-upsell" hidden>
+        <p class="edition-label">Complete the Fit</p>
+        <div class="modal__upsell-grid" id="modal-upsell-grid"></div>
+      </div>
+
+      <!-- Step 1: Contact info -->
+      <div class="modal__step" id="modal-step-1">
+        <p class="modal__form-heading">Your Details</p>
+        <div class="modal__form-row">
+          <label for="modal-name" class="sr-only">Your name</label>
+          <input type="text" id="modal-name" name="name" placeholder="Your name" autocomplete="name" required />
+        </div>
+        <div class="modal__form-row">
+          <label for="modal-email" class="sr-only">Email address</label>
+          <input type="email" id="modal-email" name="email" placeholder="your@email.com" autocomplete="email" required />
+        </div>
+        <input type="hidden" id="modal-selected-size" name="size" value="" />
+        <input type="hidden" id="modal-product-id" name="product_id" value="" />
+        <button type="button" class="btn btn--primary modal__submit" id="modal-step1-btn" disabled>
+          Continue to Payment →
+        </button>
+        <p class="modal__disclaimer">Order confirmed instantly. Fulfilled by Printful &amp; shipped to your door.</p>
+        <p class="modal__msg" id="modal-msg" aria-live="polite"></p>
+      </div>
+
+      <!-- Step 2: Stripe payment -->
+      <div class="modal__step modal__step--payment" id="modal-step-2" hidden>
+        <button type="button" class="modal__back-btn" id="modal-back-btn" aria-label="Go back">← Back</button>
+        <div class="modal__order-summary" id="modal-order-summary">
+          <span class="edition-label" id="modal-summary-name">—</span>
+          <span class="modal__summary-sep">·</span>
+          <span id="modal-summary-size">—</span>
+          <span class="modal__summary-sep">·</span>
+          <strong id="modal-summary-price">$—</strong>
+        </div>
+        <div class="stripe-element-wrap">
+          <label class="stripe-element-label">Card Details</label>
+          <div id="stripe-payment-element">
+            <!-- Stripe Payment Element mounts here -->
+          </div>
+          <p class="stripe-element-error" id="stripe-error" role="alert" aria-live="polite"></p>
+        </div>
+        <button type="button" class="btn btn--primary modal__submit modal__pay-btn" id="modal-pay-btn" disabled>
+          Pay <span id="modal-pay-amount">$—</span> →
+        </button>
+        <div class="modal__secure-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Secured by Stripe. We never see your card number.
+        </div>
+
+        <!-- Success state (shown after payment) -->
+        <div class="modal__success" id="modal-success" hidden>
+          <div class="modal__success-icon" aria-hidden="true">✓</div>
+          <h3 class="modal__success-title">Order Confirmed!</h3>
+          <p class="modal__success-msg">Check your inbox for a confirmation email. Your shirt ships in 2–7 business days.</p>
+          <button type="button" class="btn btn--ghost" id="modal-success-close">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ SIZE GUIDE MODAL ═══════════════════ -->
+  <div class="modal size-guide-modal" id="size-guide-modal" role="dialog" aria-modal="true" aria-label="Size guide" hidden>
+    <div class="modal__backdrop" id="size-guide-backdrop"></div>
+    <div class="modal__panel modal__panel--sm">
+      <button class="modal__close" id="size-guide-close" type="button" aria-label="Close size guide">×</button>
+      <p class="edition-label">Fit Guide</p>
+      <h3 class="modal__product-name" style="margin-bottom:1.5rem;">Find Your Size</h3>
+      <div class="size-guide-table-wrap">
+        <table class="size-guide-table">
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Chest (in)</th>
+              <th>Length (in)</th>
+              <th>Sleeve (in)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>XS</td><td>34–36</td><td>27</td><td>8</td></tr>
+            <tr><td>S</td><td>36–38</td><td>28</td><td>8.5</td></tr>
+            <tr><td>M</td><td>38–40</td><td>29</td><td>9</td></tr>
+            <tr><td>L</td><td>40–42</td><td>30</td><td>9.5</td></tr>
+            <tr><td>XL</td><td>42–44</td><td>31</td><td>10</td></tr>
+            <tr><td>2XL</td><td>46–48</td><td>32</td><td>10.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="size-guide-note">Measurements are in inches. When in doubt, size up — our tees run true to size.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ STICKY HEADER ═══════════════════ -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a href="#" class="logo" aria-label="Bottom Line Apparel home">
+        <svg class="logo-svg" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <text x="0" y="35" fill="white" font-family="'Oswald', 'Impact', sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
+          <line x1="0" y1="41" x2="168" y2="41" stroke="white" stroke-width="3"/>
+          <text x="0" y="60" fill="white" font-family="'Oswald', 'Impact', sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
+        </svg>
+      </a>
+      <nav class="main-nav" id="main-nav" aria-label="Primary navigation">
+        <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation">
+          <span class="hamburger"></span>
+        </button>
+        <ul class="nav-links" id="nav-links">
+          <li><a href="#tshirts">Shop</a></li>
+          <li><a href="#story">Story</a></li>
+          <li><a href="#lookbook">Lookbook</a></li>
+          <li><a href="#join">Join</a></li>
+        </ul>
+      </nav>
+      <button type="button" class="cart-badge-btn" id="cart-badge-btn" aria-label="View cart (0 items)" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge-count" id="cart-badge-count">0</span>
+      </button>
+      <a href="#tshirts" class="btn btn--primary header-cta magnetic-cta" id="header-cta">Shop the Drop</a>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+
+    <!-- ═══════════════════ HERO ═══════════════════ -->
+    <section class="hero" id="hero">
+      <video class="hero-video-bg" id="hero-video" src="Video_Clip_of_Men_Flirting.mp4" autoplay loop muted playsinline aria-hidden="true"></video>
+
+      <!-- Ambient depth layers — atmospheric glow behind video overlay -->
+      <div class="hero-ambient" aria-hidden="true">
+        <div class="hero-ambient__orb hero-ambient__orb--1"></div>
+        <div class="hero-ambient__orb hero-ambient__orb--2"></div>
+        <div class="hero-ambient__orb hero-ambient__orb--3"></div>
+      </div>
+
+      <!-- Product popup card — positioned at 2/3 down the hero, reveals 8s after video plays -->
+      <div class="hero-popup-wrap" id="hero-popup-wrap">
+        <div class="hero-popup-card" id="hero-popup-card" role="region" aria-label="Featured product">
+          <button class="hero-popup-card__close" id="hero-popup-dismiss" type="button" aria-label="Close featured product">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <!-- 3D floating product visual with orbit rings -->
+          <div class="hero-popup-card__visual" id="hero-visual">
+            <div class="hero-product-float" id="hero-product-float">
+              <img
+                id="hero-product-img"
+                class="hero-product-img"
+                src="carousel-1.jpg"
+                alt="Featured Bottom Line Apparel T-Shirt"
+                loading="eager"
+                width="220"
+                height="220"
+              />
+            </div>
+            <div class="hero-orbit-ring hero-orbit-ring--1" aria-hidden="true"></div>
+            <div class="hero-orbit-ring hero-orbit-ring--2" aria-hidden="true"></div>
+          </div>
+          <!-- Product info & CTA -->
+          <div class="hero-popup-card__info">
+            <p class="edition-label hero-popup-card__drop-label">Featured Drop &middot; NYC</p>
+            <p class="hero-popup-card__tagline">Your Ass<br/>Deserves a Punchline.</p>
+            <p class="price-display hero-popup-card__price" id="hero-product-price">$—</p>
+            <div class="hero-popup-card__actions">
+              <button class="btn btn--primary" id="hero-quick-add" type="button">Shop Now →</button>
+              <a href="#tshirts" class="btn btn--glass">See All Tees</a>
+            </div>
+          </div>
+          <!-- Animated conic glow ring (CSS @property enhanced) -->
+          <div class="hero-popup-card__glow-ring" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- Scroll nudge -->
+      <div class="hero-scroll-nudge" aria-hidden="true">
+        <span class="hero-scroll-line"></span>
+        <span class="hero-scroll-text">Scroll</span>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ T-SHIRTS (PRIMARY CONVERSION ZONE) ═══════════════════ -->
+    <section class="tshirts-showcase" id="tshirts">
+      <div class="container">
+        <p class="edition-label reveal">The Collection</p>
+        <h2 class="section-title lux-title reveal" id="tshirts-title-heading">Statement Tees</h2>
+        <p class="showcase-intro reveal">Four statements, zero subtlety. Each tee is a piece for the messiest — and best — version of you. Hover to explore. Click to size up.</p>
+        <div class="orbit-grid" id="tshirts-grid" aria-label="T-shirt products">
+          <!-- Orbit cards injected by script.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ MATERIAL STORY ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
+    <section class="material-story" id="material">
+      <div class="container material-story__layout">
+        <div class="material-story__content">
+          <p class="edition-label reveal-wipe">The Craft</p>
+          <h2 class="section-title lux-title reveal-wipe">Made to Be<br />Worn Out</h2>
+          <p class="material-story__body reveal-wipe">
+            Premium 100% combed ring-spun cotton. A weight that drapes without clinging, breathes without billowing. Printed with water-based inks that survive a hundred washes and still read from across a bar. These aren't souvenir shirts. They're the shirt people ask about.
+          </p>
+          <!-- Apple-style stat blocks -->
+          <div class="material-stats reveal">
+            <div class="material-stat">
+              <span class="material-stat__number" data-count="180">—</span>
+              <span class="material-stat__label">GSM Weight</span>
+            </div>
+            <div class="material-stat">
+              <span class="material-stat__number" data-count="100">—</span>
+              <span class="material-stat__label">% Ring-Spun Cotton</span>
+            </div>
+            <div class="material-stat">
+              <span class="material-stat__number" data-count="100">—</span>
+              <span class="material-stat__label">Washes Guaranteed</span>
+            </div>
+          </div>
+          <p class="material-story__body reveal-wipe">
+            Every design is obsessed over, argued about, and road-tested in NYC before it ships. If it doesn't make us laugh and wince a little — it doesn't make the cut.
+          </p>
+          <a href="#tshirts" class="btn btn--lux reveal-wipe" style="margin-top:1.5rem; display:inline-flex;">
+            Shop All Tees
+          </a>
+        </div>
+        <div class="material-story__visual">
+          <img
+            src="lifestyle-dock.jpg"
+            alt="Bottom Line Apparel lifestyle — men wearing statement tees at the waterfront"
+            loading="lazy"
+            width="600"
+            height="700"
+            class="material-depth-img"
+          />
+          <div class="material-story__tag">
+            <p class="edition-label">Premium Cotton</p>
+            <p class="material-story__tag-text">Ring-Spun · Water-Based Ink</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ LIMITED DROP COUNTDOWN ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
+    <section class="countdown-section" id="countdown">
+      <div class="container countdown-inner">
+        <p class="edition-label reveal">Drop Window Closing</p>
+        <h2 class="section-title reveal">Order Before It's Gone</h2>
+        <div class="flip-clock reveal" id="flip-clock" aria-label="Countdown timer" role="timer">
+          <div class="flip-unit">
+            <div class="flip-card" id="clock-hours">00</div>
+            <span class="flip-label">Hours</span>
+          </div>
+          <span class="flip-sep" aria-hidden="true">:</span>
+          <div class="flip-unit">
+            <div class="flip-card" id="clock-minutes">00</div>
+            <span class="flip-label">Minutes</span>
+          </div>
+          <span class="flip-sep" aria-hidden="true">:</span>
+          <div class="flip-unit">
+            <div class="flip-card" id="clock-seconds">00</div>
+            <span class="flip-label">Seconds</span>
+          </div>
+        </div>
+        <p class="countdown-subtext reveal">This drop closes when the timer hits zero. No restocks.</p>
+        <a href="#tshirts" class="btn btn--primary btn--lg reveal">Shop Before It's Gone →</a>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ CAMPAIGN VIDEOS ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
+    <section class="campaign-videos" id="campaign">
+      <div class="container">
+        <p class="edition-label reveal">The Energy</p>
+        <h2 class="section-title reveal">The Vibe Check</h2>
+        <div class="campaign-grid">
+          <div class="campaign-card">
+            <video class="campaign-video" src="video_part_1.mp4" autoplay loop muted playsinline aria-label="Bottom Line Apparel campaign clip 1"></video>
+          </div>
+          <div class="campaign-card">
+            <video class="campaign-video" src="video_part_2.mp4" autoplay loop muted playsinline aria-label="Bottom Line Apparel campaign clip 2"></video>
+          </div>
+          <div class="campaign-card">
+            <video class="campaign-video" src="video_part_3.mp4" autoplay loop muted playsinline aria-label="Bottom Line Apparel campaign clip 3"></video>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ UGC / LOOKBOOK ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
+    <section class="lookbook" id="lookbook">
+      <div class="container">
+        <p class="edition-label reveal">The Community</p>
+        <h2 class="section-title reveal">Show Us Your Bottom Line</h2>
+        <p class="lookbook-intro reveal">Tag @bottomlineapparel in your fits and nights out — we feature our favorite clout chasers and vape queens on TikTok and Instagram. Whether you're on the Fire Island ferry, outside the club, or just scrolling from bed.</p>
+      </div>
+      <!-- Infinite ticker strip -->
+      <div class="ugc-ticker-wrap" aria-hidden="true">
+        <div class="ugc-ticker" id="ugc-ticker">
+          <!-- Set A -->
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder" role="img" aria-label="@chaotictwink wearing Bottom Line Apparel">📸</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@chaotictwink</p>
+              <p class="ugc-card__caption">"Push Out For Clout on the ferry. Absolutely unhinged." 🏝️</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder" role="img" aria-label="@vapelordnyc wearing Bottom Line Apparel">💨</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@vapelordnyc</p>
+              <p class="ugc-card__caption">"Gapin' and Vapin' is a personal attack and I love it." 💀</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder" role="img" aria-label="@fitpicpapi wearing Bottom Line Apparel">🔥</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@fitpicpapi</p>
+              <p class="ugc-card__caption">"Finally a brand that gets it. Wearing this to brunch and blaming the shirt." 🥂</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder" role="img" aria-label="@brunchbae wearing Bottom Line Apparel">✨</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@brunchbae</p>
+              <p class="ugc-card__caption">"Wore it on a date. Got a second date. Shirt did the work." 😮‍💨</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder" role="img" aria-label="@hellbentnyc wearing Bottom Line Apparel">🌈</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@hellbentnyc</p>
+              <p class="ugc-card__caption">"Walked past three staring strangers. Worth every penny." 👁️</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <!-- Set B (duplicate for seamless loop) -->
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder">📸</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@chaotictwink</p>
+              <p class="ugc-card__caption">"Push Out For Clout on the ferry. Absolutely unhinged." 🏝️</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder">💨</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@vapelordnyc</p>
+              <p class="ugc-card__caption">"Gapin' and Vapin' is a personal attack and I love it." 💀</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder">🔥</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@fitpicpapi</p>
+              <p class="ugc-card__caption">"Finally a brand that gets it. Wearing this to brunch." 🥂</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder">✨</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@brunchbae</p>
+              <p class="ugc-card__caption">"Wore it on a date. Got a second date. Shirt did the work." 😮‍💨</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+          <div class="ugc-card">
+            <div class="ugc-card__img-wrap">
+              <div class="ugc-card__placeholder">🌈</div>
+            </div>
+            <div class="ugc-card__body">
+              <p class="ugc-card__user">@hellbentnyc</p>
+              <p class="ugc-card__caption">"Walked past three staring strangers. Worth every penny." 👁️</p>
+              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ STORY ═══════════════════ -->
+    <section class="story" id="story">
+      <div class="container story-grid">
+        <div class="story-content">
+          <p class="edition-label reveal">The Origin</p>
+          <h2 class="section-title reveal">Gay NYC, Bad Decisions, Great Tees</h2>
+          <div class="story-body">
+            <p class="reveal">Born on late-night trains and gay group chats, Bottom Line Apparel is what happens when a New York gay gets tired of straight brands trying to make "funny gay shirts."</p>
+            <p class="reveal">We make innuendo-heavy tees and hoodies for millennial and Gen&nbsp;Z gay men who live for clout, chaos, and camp — but still want something they'd actually wear outside the bedroom.</p>
+            <p class="reveal">From "Push Out For Clout" to "Gapin' and Vapin'," every design is a self-drag, an inside joke, or a love letter to the messiness of gay life in big cities. You bring the body. We bring the punchline.</p>
+          </div>
+        </div>
+        <div class="story-visual">
+          <div class="carousel-container">
+            <div class="carousel-track" id="carousel-track">
+              <div class="carousel-slide active" tabindex="0" role="button" aria-label="View community photo 1">
+                <img src="carousel-1.jpg" alt="Bottom Line Apparel community shot 1" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 2">
+                <img src="carousel-2.jpg" alt="Bottom Line Apparel community shot 2" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 3">
+                <img src="carousel-3.jpg" alt="Bottom Line Apparel community shot 3" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 4">
+                <img src="carousel-4.jpg" alt="Bottom Line Apparel community shot 4" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 5">
+                <img src="carousel-5.png" alt="Bottom Line Apparel community shot 5" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 6">
+                <img src="carousel-6.png" alt="Bottom Line Apparel community shot 6" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 7">
+                <img src="carousel-7.png" alt="Bottom Line Apparel community shot 7" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 8">
+                <img src="carousel-8.png" alt="Bottom Line Apparel community shot 8" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 9">
+                <img src="carousel-9.png" alt="Bottom Line Apparel community shot 9" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 10">
+                <img src="carousel-10.png" alt="Bottom Line Apparel community shot 10" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 11">
+                <img src="carousel-11.jpg" alt="Bottom Line Apparel community shot 11" loading="lazy" />
+              </div>
+              <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 12">
+                <img src="carousel-12.png" alt="Bottom Line Apparel community shot 12" loading="lazy" />
+              </div>
+            </div>
+            <div class="carousel-controls">
+              <button class="carousel-btn prev-btn" id="carousel-prev" aria-label="Previous slide">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button class="carousel-btn next-btn" id="carousel-next" aria-label="Next slide">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ OTHER APPAREL ═══════════════════ -->
+    <section class="product-showcase" id="apparel">
+      <div class="container">
+        <p class="edition-label reveal">More Drops</p>
+        <h2 class="section-title reveal">Also in the Collection</h2>
+
+        <h3 class="subcategory-title" id="tanks-title" style="display:none;">Tank Tops</h3>
+        <div class="products-grid" id="tanks-grid">
+          <!-- Tanks injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="hoodies-title" style="display:none;">Hoodies</h3>
+        <div class="products-grid" id="hoodies-grid">
+          <!-- Hoodies injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ PHONE CASES ═══════════════════ -->
+    <section class="accessories-section" id="phone-cases">
+      <div class="container">
+        <p class="edition-label reveal">Accessories</p>
+        <h2 class="section-title reveal">Phone Cases</h2>
+        <div class="products-grid" id="phone-cases-grid">
+          <!-- Phone cases injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ JOIN / INNER CIRCLE ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
+    <section class="join" id="join">
+      <div class="container">
+        <p class="edition-label reveal" style="display:block; text-align:center;">The Inner Circle</p>
+        <h2 class="section-title reveal">First Access.<br />Always.</h2>
+        <p class="join-copy reveal">Drops are small, chaotic, and occasionally petty. Join the list for first dibs on new slogans, limited runs, and whatever unhinged idea comes next. No spam. Just the good stuff.</p>
+        <form class="signup-form" id="signup-form" novalidate>
+          <div class="signup-form__group">
+            <label for="email-input" class="sr-only">Email address</label>
+            <input type="email" id="email-input" class="signup-form__input" placeholder="your@email.com" required autocomplete="email" />
+            <button type="submit" class="btn btn--primary signup-form__btn">Count Me In</button>
+          </div>
+          <p class="signup-form__msg" id="signup-msg" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════ FOOTER ═══════════════════ -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <!-- Brand wordmark -->
+      <svg class="logo-svg" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="height:36px;opacity:0.5;">
+        <text x="0" y="35" fill="currentColor" font-family="'Oswald','Impact',sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
+        <line x1="0" y1="41" x2="168" y2="41" stroke="currentColor" stroke-width="2"/>
+        <text x="0" y="60" fill="currentColor" font-family="'Oswald', 'Impact', sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
+      </svg>
+      <p class="footer-tagline">Your Ass Deserves a Punchline.</p>
+      <p>&copy; <span id="footer-year"></span> Bottom Line Apparel &middot; NYC &middot; <a href="https://tiktok.com/@bottomlineapparel" target="_blank" rel="noopener noreferrer">TikTok</a></p>
+      <nav class="footer-legal" aria-label="Legal links">
+        <a href="/privacy">Privacy Policy</a>
+        <span aria-hidden="true">&middot;</span>
+        <a href="/terms">Terms of Service</a>
+        <span aria-hidden="true">&middot;</span>
+        <button type="button" class="footer-cookie-btn" id="footer-cookie-btn">Cookie Preferences</button>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- Cursor spotlight — luxury ambient glow follows cursor -->
+  <div class="lux-spotlight" id="lux-spotlight" aria-hidden="true"></div>
+
+  <!-- ═══════════════════ TOAST NOTIFICATIONS ═══════════════════ -->
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- ═══════════════════ COOKIE CONSENT BANNER ═══════════════════ -->
+  <div class="cookie-banner" id="cookie-banner" role="dialog" aria-modal="false" aria-label="Cookie consent" aria-live="polite" hidden>
+    <div class="cookie-banner__inner">
+      <div class="cookie-banner__text">
+        <p class="edition-label">Your Privacy Matters</p>
+        <p>We use cookies for analytics and personalized ads. Essential cookies are always on. You can accept all or manage your preferences.</p>
+        <a href="/privacy" class="cookie-banner__link">Privacy Policy</a>
+      </div>
+      <div class="cookie-banner__actions">
+        <button type="button" class="btn btn--ghost cookie-banner__manage" id="cookie-manage">Manage Preferences</button>
+        <button type="button" class="btn btn--secondary cookie-banner__decline" id="cookie-decline">Essential Only</button>
+        <button type="button" class="btn btn--primary cookie-banner__accept" id="cookie-accept">Accept All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cookie Preferences Modal -->
+  <div class="cookie-prefs" id="cookie-prefs" role="dialog" aria-modal="true" aria-labelledby="cookie-prefs-title" hidden>
+    <div class="cookie-prefs__backdrop" id="cookie-prefs-backdrop"></div>
+    <div class="cookie-prefs__panel">
+      <button type="button" class="modal__close" id="cookie-prefs-close" aria-label="Close preferences">×</button>
+      <h2 id="cookie-prefs-title" class="cookie-prefs__title">Cookie Preferences</h2>
+      <p class="cookie-prefs__desc">Choose which cookies you allow us to use. Your choice is saved for 1 year.</p>
+
+      <ul class="cookie-prefs__list">
+        <li class="cookie-prefs__item">
+          <div class="cookie-prefs__info">
+            <strong>Essential</strong>
+            <span>Session, cart, and security cookies. Always active.</span>
+          </div>
+          <span class="cookie-prefs__always">Always On</span>
+        </li>
+        <li class="cookie-prefs__item">
+          <div class="cookie-prefs__info">
+            <strong>Analytics</strong>
+            <span>Google Analytics — helps us understand how visitors use the site (anonymized).</span>
+          </div>
+          <label class="cookie-toggle" aria-label="Analytics cookies">
+            <input type="checkbox" id="pref-analytics" />
+            <span class="cookie-toggle__track"><span class="cookie-toggle__thumb"></span></span>
+          </label>
+        </li>
+        <li class="cookie-prefs__item">
+          <div class="cookie-prefs__info">
+            <strong>Marketing</strong>
+            <span>TikTok Pixel and Meta Pixel — used to measure ad performance and show relevant ads.</span>
+          </div>
+          <label class="cookie-toggle" aria-label="Marketing cookies">
+            <input type="checkbox" id="pref-marketing" />
+            <span class="cookie-toggle__track"><span class="cookie-toggle__thumb"></span></span>
+          </label>
+        </li>
+      </ul>
+
+      <div class="cookie-prefs__footer">
+        <button type="button" class="btn btn--primary" id="cookie-prefs-save">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics pixel config — IDs are public (not secrets).
+       Replace placeholder values with your real IDs before deploying.
+       These are only loaded after cookie consent is granted. -->
+  <script>
+    window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // Replace with real GA4 Measurement ID
+    window.BLA_TTQ_ID       = '';               // Replace with TikTok Pixel ID, or leave blank
+    window.BLA_META_ID      = '';               // Replace with Meta Pixel ID, or leave blank
+    window.BLA_STRIPE_PK    = 'pk_test_...';    // Replace with Stripe publishable key (safe for frontend)
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>
