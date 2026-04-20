@@ -50,7 +50,7 @@
   "functions": {
     "api/products.js": {
       "maxDuration": 15,
-      "includeFiles": ["product_mapping.json"]
+      "includeFiles": "product_mapping.json"
     },
     "api/subscribe.js": {
       "maxDuration": 10

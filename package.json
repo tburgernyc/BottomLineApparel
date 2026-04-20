@@ -7,10 +7,18 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "vercel dev",
-    "lint": "echo 'No linting tool configured. Success.'"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "api:dev": "vercel dev",
+    "lint": "eslint src --ext .ts,.js",
+    "format": "prettier --write ."
   },
   "devDependencies": {
+    "vite": "^5.2.0",
+    "typescript": "^5.4.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.2.0",
     "dotenv": "^16.4.5"
   }
 }
