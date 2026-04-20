@@ -6,6 +6,25 @@
    ═══════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  
+  // ── Lemon Squeezy Initialization ──
+  window.createLSCheckout = (url) => {
+    if (window.LemonSqueezy) {
+      window.LemonSqueezy.Url.Open(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
+  if (window.LemonSqueezy) {
+    window.LemonSqueezy.Setup({
+      eventHandler: (data) => {
+        if (data.event === 'Checkout.Success') {
+          showToast('Success! Your order is being drafted.', 'success');
+        }
+      }
+    });
+  }
 
   /* ════════════════════════════════════════════════
      TOAST NOTIFICATION SYSTEM
@@ -857,31 +876,33 @@ document.addEventListener('DOMContentLoaded', () => {
               <p class="edition-label">Statement Tee</p>
               <h3 class="orbit-card__title">${escapeHtml(product.title)}</h3>
               <p class="orbit-card__desc">${escapeHtml(product.short_description || '')}</p>
-              <div class="orbit-card__footer">
-                <span class="price-display">$${product.price.toFixed(2)}</span>
-                <button class="btn btn--primary orbit-card__cta" type="button"
-                        aria-label="Notify when ${escapeAttr(product.title)} is live">
-                  Get Early Access
-                </button>
-              </div>
+            <div class="orbit-card__footer">
+              <span class="price-display">$${product.price.toFixed(2)}</span>
+              <button class="btn btn--primary orbit-card__cta" type="button"
+                      ${product.lemonsqueezy_url ? `onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"` : ''}
+                      aria-label="${product.lemonsqueezy_url ? `Buy ${escapeAttr(product.title)}` : `Notify when ${escapeAttr(product.title)} is live`}">
+                ${product.lemonsqueezy_url ? 'Buy Now' : 'Get Early Access'}
+              </button>
             </div>
           </div>
-          <!-- Back Face: Size Selector -->
-          <div class="orbit-card__back" aria-label="Size selection for ${escapeAttr(product.title)}">
-            <p class="edition-label">Choose Your Size</p>
-            <h4 class="orbit-card__back-title">${escapeHtml(product.title)}</h4>
-            <div class="size-grid orbit-size-grid">
-              <button class="size-tag" data-size="XS" type="button">XS</button>
-              <button class="size-tag" data-size="S"  type="button">S</button>
-              <button class="size-tag" data-size="M"  type="button">M</button>
-              <button class="size-tag" data-size="L"  type="button">L</button>
-              <button class="size-tag" data-size="XL" type="button">XL</button>
-              <button class="size-tag" data-size="2XL" type="button">2XL</button>
-            </div>
-            <button class="btn btn--glass btn--sm size-guide-trigger" type="button">Size Guide ↗</button>
-            <button class="btn btn--primary orbit-card__add-btn" type="button" disabled>
-              Notify Me When Live
-            </button>
+        </div>
+        <!-- Back Face: Size Selector -->
+        <div class="orbit-card__back" aria-label="Size selection for ${escapeAttr(product.title)}">
+          <p class="edition-label">Choose Your Size</p>
+          <h4 class="orbit-card__back-title">${escapeHtml(product.title)}</h4>
+          <div class="size-grid orbit-size-grid">
+            <button class="size-tag" data-size="XS" type="button">XS</button>
+            <button class="size-tag" data-size="S"  type="button">S</button>
+            <button class="size-tag" data-size="M"  type="button">M</button>
+            <button class="size-tag" data-size="L"  type="button">L</button>
+            <button class="size-tag" data-size="XL" type="button">XL</button>
+            <button class="size-tag" data-size="2XL" type="button">2XL</button>
+          </div>
+          <button class="btn btn--glass btn--sm size-guide-trigger" type="button">Size Guide ↗</button>
+          <button class="btn btn--primary orbit-card__add-btn" type="button"
+                  ${product.lemonsqueezy_url ? `onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"` : 'disabled'}>
+            ${product.lemonsqueezy_url ? 'Buy Now' : 'Notify Me When Live'}
+          </button>
             <button class="btn btn--secondary btn--sm orbit-flip-back" type="button">← Back</button>
           </div>
         </div>
@@ -889,12 +910,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderTeeCard(product) {
-    const buyBtn = product.tiktok_url
-      ? `<a href="${product.tiktok_url}" class="btn btn--glass" target="_blank" rel="noopener noreferrer"
-             aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`
-      : `<button class="btn btn--glass" type="button"
-                 aria-label="Buy ${escapeAttr(product.title)}"
-                 data-open-modal="${product.id}">Buy Now</button>`;
+    let buyBtn = '';
+    if (product.lemonsqueezy_url) {
+      buyBtn = `<button class="btn btn--glass" type="button" onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"
+                         aria-label="Buy ${escapeAttr(product.title)}">Buy Now</button>`;
+    } else if (product.tiktok_url) {
+      buyBtn = `<a href="${product.tiktok_url}" class="btn btn--glass" target="_blank" rel="noopener noreferrer"
+                   aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`;
+    } else {
+      buyBtn = `<button class="btn btn--glass" type="button"
+                       aria-label="Notify when ${escapeAttr(product.title)} is live"
+                       data-open-modal="${product.id}">Get Early Access</button>`;
+    }
 
     return `
       <article class="product-card reveal" style="--glow-color: var(--color-pink)">
@@ -916,12 +943,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderAccessoryCard(product) {
-    const buyBtn = product.tiktok_url
-      ? `<a href="${product.tiktok_url}" class="btn btn--glass btn--sm" target="_blank" rel="noopener noreferrer"
-             aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`
-      : `<button class="btn btn--glass btn--sm" type="button"
-                 aria-label="Buy ${escapeAttr(product.title)}"
-                 data-open-modal="${product.id}">Buy Now</button>`;
+    let buyBtn = '';
+    if (product.lemonsqueezy_url) {
+      buyBtn = `<button class="btn btn--glass btn--sm" type="button" onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"
+                         aria-label="Buy ${escapeAttr(product.title)}">Buy Now</button>`;
+    } else if (product.tiktok_url) {
+      buyBtn = `<a href="${product.tiktok_url}" class="btn btn--glass btn--sm" target="_blank" rel="noopener noreferrer"
+                   aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`;
+    } else {
+      buyBtn = `<button class="btn btn--glass btn--sm" type="button"
+                       aria-label="Notify when ${escapeAttr(product.title)} is live"
+                       data-open-modal="${product.id}">Get Early Access</button>`;
+    }
 
     return `
       <article class="accessory-card reveal">

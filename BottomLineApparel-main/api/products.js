@@ -66,12 +66,12 @@ function extractShortDescription(html) {
  */
 function classify(name) {
   const lower = (name || '').toLowerCase();
-  
+
   if (lower.includes('hoodie') || lower.includes('sweat') || lower.includes('zip')) return 'hoodies';
   if (lower.includes('tank')) return 'tanks';
   if (lower.includes('tee') || lower.includes('t-shirt') || lower.includes('shirt')) return 'tshirts';
   if (lower.includes('phone') || lower.includes('case')) return 'phoneCases';
-  
+
   // Default fallback
   return 'accessories';
 }
@@ -79,22 +79,29 @@ function classify(name) {
 /**
  * Shape a Printful sync product + its variants into our clean API response shape.
  */
-function shapeProduct(syncProduct, syncVariants) {
-  const price = lowestPrice(syncVariants);
-  if (price === null) return null; // no enabled variants with price — skip
+// Inject Lemon Squeezy URL from mapping if exists
+let lemonsqueezy_url = null;
+try {
+  const mappingPath = require('path').join(process.cwd(), 'product_mapping.json');
+  if (require('fs').existsSync(mappingPath)) {
+    const mapping = JSON.parse(require('fs').readFileSync(mappingPath, 'utf8'));
+    const productMap = mapping.products.find(p => p.id === syncProduct.id);
+    if (productMap) lemonsqueezy_url = productMap.lemonsqueezy_url;
+  }
+} catch (err) {
+  // console.warn('[api/products] Mapping read failed', err.message);
+}
 
-  const image = bestImage(syncProduct, syncVariants);
-  if (!image) return null; // no image available — skip
-
-  return {
-    id: syncProduct.id,
-    title: syncProduct.name,
-    short_description: extractShortDescription(syncProduct.description || ''),
-    price,
-    image,
-    tiktok_url: null, // Printful TikTok store doesn't expose direct product URLs via API
-    category: classify(syncProduct.name),
-  };
+return {
+  id: syncProduct.id,
+  title: syncProduct.name,
+  short_description: extractShortDescription(syncProduct.description || ''),
+  price,
+  image,
+  tiktok_url: null,
+  lemonsqueezy_url,
+  category: classify(syncProduct.name),
+};
 }
 
 export default async function handler(req, res) {
@@ -185,7 +192,7 @@ export default async function handler(req, res) {
     if (!detail || !detail.sync_product) continue;
     const shaped = shapeProduct(detail.sync_product, detail.sync_variants);
     if (!shaped) continue;
-    
+
     if (grouped[shaped.category]) {
       grouped[shaped.category].push(shaped);
     } else {
