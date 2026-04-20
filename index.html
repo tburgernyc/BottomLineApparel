@@ -53,19 +53,35 @@
   <!-- Skip to content — keyboard / screen reader navigation -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <header class="site-header" role="banner">
-    <!-- Navigation / Brand header can go here -->
+  <header class="site-header" id="site-header" role="banner">
+    <div class="header-inner">
+      <a href="#" class="logo" aria-label="Bottom Line Apparel Home">
+        <svg class="logo-svg" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <text x="0" y="35" fill="currentColor" font-family="'Oswald','Impact',sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
+          <line x1="0" y1="41" x2="168" y2="41" stroke="currentColor" stroke-width="3"/>
+          <text x="0" y="60" fill="currentColor" font-family="'Oswald','Impact',sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
+        </svg>
+      </a>
+
+      <nav class="nav-links" id="nav-links" aria-label="Primary navigation">
+        <a href="#material">The Craft</a>
+        <a href="#tshirts">Collection</a>
+        <a href="#story">Stories</a>
+        <a href="#join">Join</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="#tshirts" class="btn btn--primary btn--sm header-cta" id="header-cta">Shop Now →</a>
+        <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">
+          <span class="hamburger"></span>
+        </button>
+      </div>
+    </div>
   </header>
 
   <!-- ═══════════════════ SPLASH SCREEN ═══════════════════ -->
   <div class="splash" id="splash" aria-hidden="true">
     <div class="splash__inner">
-      <svg class="splash__logo" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <text x="0" y="35" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
-        <line x1="0" y1="41" x2="168" y2="41" stroke="white" stroke-width="3"/>
-        <text x="0" y="60" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
-      </svg>
-      <p class="splash__tagline"></p>
       <div class="splash__bar" aria-label="Loading"></div>
     </div>
   </div>
