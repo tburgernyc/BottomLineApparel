@@ -214,7 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const revealPopup = () => heroPopupCard.classList.add('active');
 
     // Start 8s countdown; reset it if video fires its play event first
-    let popupTimer = setTimeout(revealPopup, 8000);
+    // Reduce delay for returning users, but keep the vibe for new ones
+    const splashDelay = localStorage.getItem('bla_seen_splash') ? 2500 : 5500;
+    let popupTimer = setTimeout(revealPopup, splashDelay);
+    localStorage.setItem('bla_seen_splash', 'true');
     if (heroVideo) {
       heroVideo.addEventListener('play', () => {
         clearTimeout(popupTimer);
@@ -857,8 +860,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="orbit-card__footer">
                 <span class="price-display">$${product.price.toFixed(2)}</span>
                 <button class="btn btn--primary orbit-card__cta" type="button"
-                        aria-label="Select size for ${escapeAttr(product.title)}">
-                  Select Size
+                        aria-label="Notify when ${escapeAttr(product.title)} is live">
+                  Get Early Access
                 </button>
               </div>
             </div>
@@ -877,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <button class="btn btn--glass btn--sm size-guide-trigger" type="button">Size Guide ↗</button>
             <button class="btn btn--primary orbit-card__add-btn" type="button" disabled>
-              Add to Cart
+              Notify Me When Live
             </button>
             <button class="btn btn--secondary btn--sm orbit-flip-back" type="button">← Back</button>
           </div>
