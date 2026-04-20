@@ -2,6 +2,8 @@
 .env
 node_modules/
 .vercel/
+dist/
+.gemini/
 *.log
 npm-debug.log*
 .DS_Store

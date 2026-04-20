@@ -2181,12 +2181,6 @@ ul {
 .signup-form__msg--success { color: var(--color-green); font-weight: var(--fw-medium); }
 .signup-form__msg--error   { color: var(--color-pink);  font-weight: var(--fw-medium); }
 
-/* ══════════════════════════════════════════════════
-   ANNOUNCEMENT BAR
-   ══════════════════════════════════════════════════ */
-.announcement-bar {
-  position: fixed;
-  top: 0;
 
 /* ══════════════════════════════════════════════════
    TOAST NOTIFICATIONS

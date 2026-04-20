@@ -62,6 +62,7 @@ export function initScrollInteractions() {
     window.addEventListener('scroll', () => {
       header.classList.toggle('scrolled', window.scrollY > 80);
     }, { passive: true });
+  }
   // Active Nav Highlight
   try {
     const sections = document.querySelectorAll('section[id]');
