@@ -1151,7 +1151,7 @@ ul {
    T-SHIRTS SHOWCASE — Phase 2: 3D Orbit Cards
    ══════════════════════════════════════════════════ */
 .tshirts-showcase {
-  padding: var(--space-xl) 0;
+  padding: calc(var(--space-xl) + var(--space-md)) 0 var(--space-xl) 0;
   position: relative;
   z-index: 2;
 }
