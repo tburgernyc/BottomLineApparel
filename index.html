@@ -26,10 +26,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
-  <!-- Stripe.js — loaded here so it's available before checkout (Stripe requires top-level load) -->
-  <script src="https://js.stripe.com/v3/" async></script>
+  <!-- Lemon Squeezy — Merchant of Record payments (Apple Pay / Google Pay enabled) -->
+  <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
   <!-- Klaviyo — onsite JS for email capture, pop-ups, and event tracking -->
-  <script async type='text/javascript' src='https://static.klaviyo.com/onsite/js/WPcja9/klaviyo.js?company_id=WPcja9'></script>
+  <script async type="text/javascript" src="https://static.klaviyo.com/onsite/js/WPcja9/klaviyo.js?company_id=WPcja9"></script>
   <script type="text/javascript">
     //Initialize Klaviyo object on page load
     !function(){if(!window.klaviyo){window._klOnsite=window._klOnsite||[];try{window.klaviyo=new Proxy({},{get:function(n,i){return"push"===i?function(){var n;(n=window._klOnsite).push.apply(n,arguments)}:function(){for(var n=arguments.length,o=new Array(n),w=0;w<n;w++)o[w]=arguments[w];var t="function"==typeof o[o.length-1]?o.pop():void 0,e=new Promise((function(n){window._klOnsite.push([i].concat(o,[function(i){t&&t(i),n(i)}]))}));return e}}})}catch(n){window.klaviyo=window.klaviyo||[],window.klaviyo.push=function(){var n;(n=window._klOnsite).push.apply(n,arguments)}}}}();
@@ -53,6 +53,10 @@
   <!-- Skip to content — keyboard / screen reader navigation -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
+  <header class="site-header" role="banner">
+    <!-- Navigation / Brand header can go here -->
+  </header>
+
   <!-- ═══════════════════ SPLASH SCREEN ═══════════════════ -->
   <div class="splash" id="splash" aria-hidden="true">
     <div class="splash__inner">
@@ -61,28 +65,9 @@
         <line x1="0" y1="41" x2="168" y2="41" stroke="white" stroke-width="3"/>
         <text x="0" y="60" fill="white" font-family="'Oswald','Impact',sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
       </svg>
-      <p class="splash__tagline">Your Ass Deserves a Punchline.</p>
+      <p class="splash__tagline"></p>
       <div class="splash__bar" aria-label="Loading"></div>
     </div>
-  </div>
-
-  <!-- ═══════════════════ ANNOUNCEMENT BAR ═══════════════════ -->
-  <div class="announcement-bar" id="announcement-bar" role="banner" aria-label="Site announcement">
-    <div class="announcement-bar__track" aria-hidden="true">
-      <span class="announcement-bar__item">NYC Drop #001 &nbsp;·&nbsp; Limited Quantities</span>
-      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
-      <span class="announcement-bar__item">Free Shipping on Orders Over $75</span>
-      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
-      <span class="announcement-bar__item">Queer-Owned &nbsp;·&nbsp; NYC Made</span>
-      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
-      <span class="announcement-bar__item">NYC Drop #001 &nbsp;·&nbsp; Limited Quantities</span>
-      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
-      <span class="announcement-bar__item">Free Shipping on Orders Over $75</span>
-      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
-      <span class="announcement-bar__item">Queer-Owned &nbsp;·&nbsp; NYC Made</span>
-      <span class="announcement-bar__sep" aria-hidden="true">✦</span>
-    </div>
-    <button class="announcement-bar__close" id="announcement-close" type="button" aria-label="Dismiss announcement">×</button>
   </div>
 
   <!-- Global looping video background -->
@@ -92,7 +77,7 @@
   <div class="sticky-cart" id="sticky-cart" aria-label="Quick add to cart" role="complementary">
     <div class="sticky-cart__inner">
       <div class="sticky-cart__product">
-        <img id="sticky-cart-img" src="" alt="Featured tee" loading="lazy" width="52" height="52" />
+        <img id="sticky-cart-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="Featured tee" loading="lazy" width="52" height="52" />
         <div class="sticky-cart__info">
           <span class="sticky-cart__name" id="sticky-cart-name">Shop the Drop</span>
           <span class="price-display sticky-cart__price" id="sticky-cart-price"></span>
@@ -120,9 +105,9 @@
       <button class="modal__close" id="modal-close" type="button" aria-label="Close checkout">×</button>
 
       <div class="modal__product-summary">
-        <img id="modal-product-img" src="" alt="" loading="lazy" width="100" height="100" />
+        <img id="modal-product-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="" loading="lazy" width="100" height="100" />
         <div class="modal__product-meta">
-          <p class="edition-label">Limited Edition Drop</p>
+          <p class="edition-label">The Collection</p>
           <h3 class="modal__product-name" id="modal-product-name">—</h3>
           <p class="price-display" id="modal-product-price">$—</p>
         </div>
@@ -236,108 +221,48 @@
     </div>
   </div>
 
-  <!-- ═══════════════════ STICKY HEADER ═══════════════════ -->
-  <header class="site-header" id="site-header">
-    <div class="header-inner">
-      <a href="#" class="logo" aria-label="Bottom Line Apparel home">
-        <svg class="logo-svg" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <text x="0" y="35" fill="white" font-family="'Oswald', 'Impact', sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
-          <line x1="0" y1="41" x2="168" y2="41" stroke="white" stroke-width="3"/>
-          <text x="0" y="60" fill="white" font-family="'Oswald', 'Impact', sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
-        </svg>
-      </a>
-      <nav class="main-nav" id="main-nav" aria-label="Primary navigation">
-        <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation">
-          <span class="hamburger"></span>
-        </button>
-        <ul class="nav-links" id="nav-links">
-          <li><a href="#tshirts">Shop</a></li>
-          <li><a href="#story">Story</a></li>
-          <li><a href="#lookbook">Lookbook</a></li>
-          <li><a href="#join">Join</a></li>
-        </ul>
-      </nav>
-      <button type="button" class="cart-badge-btn" id="cart-badge-btn" aria-label="View cart (0 items)" hidden>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-        <span class="cart-badge-count" id="cart-badge-count">0</span>
-      </button>
-      <a href="#tshirts" class="btn btn--primary header-cta magnetic-cta" id="header-cta">Shop the Drop</a>
-    </div>
-  </header>
-
   <main id="main-content" tabindex="-1">
 
-    <!-- ═══════════════════ HERO ═══════════════════ -->
-    <section class="hero" id="hero">
-      <video class="hero-video-bg" src="Video_Clip_of_Men_Flirting.mp4" autoplay loop muted playsinline aria-hidden="true"></video>
-      <div class="hero-layout">
-        <!-- Left: Copy -->
-        <div class="hero-content">
-          <p class="edition-label hero-edition-label">NYC · Queer-Owned · Limited Drop</p>
-          <h1 class="hero-headline">The Bottom Line?<br /><span class="hero-highlight">Your Ass Deserves a Punchline.</span></h1>
-          <p class="hero-subhead">Bottom Line Apparel is a queer-owned NYC brand serving gay men who like their tees unhinged, slightly cynical, and always loving.</p>
-          <div class="hero-actions">
-            <a href="#tshirts" class="btn btn--primary btn--lg">Shop the Drop</a>
-            <a href="https://tiktok.com/@bottomlineapparel" target="_blank" rel="noopener noreferrer" class="btn btn--secondary btn--lg">Follow on TikTok</a>
-          </div>
-        </div>
-        <!-- Right: Floating Product -->
-        <div class="hero-visual" id="hero-visual" aria-hidden="true">
-          <div class="hero-product-float" id="hero-product-float">
-            <img
-              id="hero-product-img"
-              class="hero-product-img"
-              src="carousel-1.jpg"
-              alt="Featured Bottom Line Apparel T-Shirt"
-              loading="eager"
-              width="480"
-              height="480"
-            />
-            <div class="hero-price-badge" id="hero-price-badge">
-              <p class="edition-label">Featured Drop</p>
-              <p class="price-display" id="hero-product-price">$—</p>
-              <button class="btn btn--primary btn--sm" id="hero-quick-add" type="button">Shop Now →</button>
-            </div>
-          </div>
-          <!-- Decorative orbit rings -->
-          <div class="hero-orbit-ring hero-orbit-ring--1" aria-hidden="true"></div>
-          <div class="hero-orbit-ring hero-orbit-ring--2" aria-hidden="true"></div>
-        </div>
-      </div>
-      <!-- Scroll nudge -->
-      <div class="hero-scroll-nudge" aria-hidden="true">
-        <span class="hero-scroll-line"></span>
-        <span class="hero-scroll-text">Scroll</span>
-      </div>
-    </section>
-
-    <!-- ═══════════════════ T-SHIRTS (PRIMARY CONVERSION ZONE) ═══════════════════ -->
-    <section class="tshirts-showcase" id="tshirts">
-      <div class="container">
-        <p class="edition-label reveal">The Collection</p>
-        <h2 class="section-title reveal" id="tshirts-title-heading">Statement Tees</h2>
-        <p class="showcase-intro reveal">Four statements, zero subtlety. Each tee is a piece for the messiest — and best — version of you. Hover to explore. Click to size up.</p>
-        <div class="orbit-grid" id="tshirts-grid" aria-label="T-shirt products">
-          <!-- Orbit cards injected by script.js -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════ MATERIAL STORY ═══════════════════ -->
+    <!-- ═══════════════════ HARBOR HERO (PROMOTED) ═══════════════════ -->
     <section class="material-story" id="material">
       <div class="container material-story__layout">
         <div class="material-story__content">
           <p class="edition-label reveal-wipe">The Craft</p>
-          <h2 class="section-title reveal-wipe">Made to Be<br />Worn Out</h2>
+          <h2 class="section-title lux-title reveal-wipe">Made to Be<br />Worn Out</h2>
           <p class="material-story__body reveal-wipe">
             Premium 100% combed ring-spun cotton. A weight that drapes without clinging, breathes without billowing. Printed with water-based inks that survive a hundred washes and still read from across a bar. These aren't souvenir shirts. They're the shirt people ask about.
           </p>
+          
+          <div class="hero-actions reveal" style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="#tshirts" class="btn btn--primary btn--lg">Shop the Collection</a>
+            <a href="https://tiktok.com/@bottomlineapparel" target="_blank" rel="noopener noreferrer" class="btn btn--secondary btn--lg">Follow on TikTok</a>
+          </div>
+
+          <!-- Apple-style stat blocks -->
+          <div class="material-stats reveal">
+            <div class="material-stat">
+              <span class="material-stat__number" data-count="180">—</span>
+              <span class="material-stat__label">GSM Weight</span>
+            </div>
+            <div class="material-stat">
+              <span class="material-stat__number" data-count="100">—</span>
+              <span class="material-stat__label">% Ring-Spun Cotton</span>
+            </div>
+            <div class="material-stat">
+              <span class="material-stat__number" data-count="100">—</span>
+              <span class="material-stat__label">Washes Guaranteed</span>
+            </div>
+          </div>
+          
           <p class="material-story__body reveal-wipe">
             Every design is obsessed over, argued about, and road-tested in NYC before it ships. If it doesn't make us laugh and wince a little — it doesn't make the cut.
           </p>
-          <a href="#tshirts" class="btn btn--glass reveal-wipe" style="margin-top:1.5rem; display:inline-flex;">
-            Shop All Tees →
-          </a>
+          <div style="margin-top: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+            <a href="#tshirts" class="btn btn--lux reveal-wipe" style="display:inline-flex;">
+              Shop All Tees
+            </a>
+            <button class="btn btn--primary btn--sm reveal" id="harbor-quick-add" type="button">Shop Now →</button>
+          </div>
         </div>
         <div class="material-story__visual">
           <img
@@ -356,10 +281,24 @@
       </div>
     </section>
 
+    <!-- ═══════════════════ T-SHIRTS (PRIMARY CONVERSION ZONE) ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
+    <section class="tshirts-showcase" id="tshirts">
+      <div class="container">
+        <p class="edition-label reveal">The Collection</p>
+        <h2 class="section-title lux-title reveal" id="tshirts-title-heading">Statement Tees</h2>
+        <p class="showcase-intro reveal">Four statements, zero subtlety. Each tee is a piece for the messiest — and best — version of you. Hover to explore. Click to size up.</p>
+        <div class="orbit-grid" id="tshirts-grid" aria-label="T-shirt products">
+          <!-- Orbit cards injected by script.js -->
+        </div>
+      </div>
+    </section>
+
     <!-- ═══════════════════ LIMITED DROP COUNTDOWN ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
     <section class="countdown-section" id="countdown">
       <div class="container countdown-inner">
-        <p class="edition-label reveal">Drop Window Closing</p>
+        <p class="edition-label reveal">Collection Window Closing</p>
         <h2 class="section-title reveal">Order Before It's Gone</h2>
         <div class="flip-clock reveal" id="flip-clock" aria-label="Countdown timer" role="timer">
           <div class="flip-unit">
@@ -377,12 +316,13 @@
             <span class="flip-label">Seconds</span>
           </div>
         </div>
-        <p class="countdown-subtext reveal">This drop closes when the timer hits zero. No restocks.</p>
+        <p class="countdown-subtext reveal">This collection closes when the timer hits zero. No restocks.</p>
         <a href="#tshirts" class="btn btn--primary btn--lg reveal">Shop Before It's Gone →</a>
       </div>
     </section>
 
     <!-- ═══════════════════ CAMPAIGN VIDEOS ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
     <section class="campaign-videos" id="campaign">
       <div class="container">
         <p class="edition-label reveal">The Energy</p>
@@ -402,6 +342,7 @@
     </section>
 
     <!-- ═══════════════════ UGC / LOOKBOOK ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
     <section class="lookbook" id="lookbook">
       <div class="container">
         <p class="edition-label reveal">The Community</p>
@@ -612,6 +553,7 @@
     </section>
 
     <!-- ═══════════════════ JOIN / INNER CIRCLE ═══════════════════ -->
+    <hr class="section-rule" aria-hidden="true" />
     <section class="join" id="join">
       <div class="container">
         <p class="edition-label reveal" style="display:block; text-align:center;">The Inner Circle</p>
@@ -633,8 +575,14 @@
   <!-- ═══════════════════ FOOTER ═══════════════════ -->
   <footer class="site-footer">
     <div class="footer-inner">
+      <!-- Brand wordmark -->
+      <svg class="logo-svg" viewBox="0 -12 220 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="height:36px;opacity:0.5;">
+        <text x="0" y="35" fill="currentColor" font-family="'Oswald','Impact',sans-serif" font-weight="700" font-size="38" letter-spacing="2">BOTTOM</text>
+        <line x1="0" y1="41" x2="168" y2="41" stroke="currentColor" stroke-width="2"/>
+        <text x="0" y="60" fill="currentColor" font-family="'Oswald', 'Impact', sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
+      </svg>
+      <p class="footer-tagline">Your Ass Deserves a Punchline.</p>
       <p>&copy; <span id="footer-year"></span> Bottom Line Apparel &middot; NYC &middot; <a href="https://tiktok.com/@bottomlineapparel" target="_blank" rel="noopener noreferrer">TikTok</a></p>
-      <p class="footer-tagline edition-label">Your Ass Deserves a Punchline.</p>
       <nav class="footer-legal" aria-label="Legal links">
         <a href="/privacy">Privacy Policy</a>
         <span aria-hidden="true">&middot;</span>
@@ -644,6 +592,9 @@
       </nav>
     </div>
   </footer>
+
+  <!-- Cursor spotlight — luxury ambient glow follows cursor -->
+  <div class="lux-spotlight" id="lux-spotlight" aria-hidden="true"></div>
 
   <!-- ═══════════════════ TOAST NOTIFICATIONS ═══════════════════ -->
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>

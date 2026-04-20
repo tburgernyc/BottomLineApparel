@@ -1,30 +1,59 @@
 {
   "rewrites": [
-    { "source": "/api/products", "destination": "/api/products.js" },
-    { "source": "/api/subscribe", "destination": "/api/subscribe.js" }
+    {
+      "source": "/api/products",
+      "destination": "/api/products.js"
+    },
+    {
+      "source": "/api/subscribe",
+      "destination": "/api/subscribe.js"
+    },
+    {
+      "source": "/api/lemonsqueezy-webhook",
+      "destination": "/api/lemonsqueezy-webhook.js"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "DENY" },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "ALLOW-FROM https://app.lemonsqueezy.com"
+        },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://files.cdn.printful.com https://*.printful.com data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://a.klaviyo.com; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://app.lemonsqueezy.com https://static.klaviyo.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://files.cdn.printful.com https://*.printful.com data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://a.klaviyo.com https://app.lemonsqueezy.com; frame-src 'self' https://app.lemonsqueezy.com; frame-ancestors 'none';"
         }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     }
   ],
   "functions": {
-    "api/products.js": { "maxDuration": 15 },
-    "api/subscribe.js": { "maxDuration": 10 }
+    "api/products.js": {
+      "maxDuration": 15
+    },
+    "api/subscribe.js": {
+      "maxDuration": 10
+    },
+    "api/lemonsqueezy-webhook.js": {
+      "maxDuration": 20
+    }
   }
 }

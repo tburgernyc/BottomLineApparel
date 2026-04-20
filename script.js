@@ -6,6 +6,25 @@
    ═══════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  
+  // ── Lemon Squeezy Initialization ──
+  window.createLSCheckout = (url) => {
+    if (window.LemonSqueezy) {
+      window.LemonSqueezy.Url.Open(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
+  if (window.LemonSqueezy) {
+    window.LemonSqueezy.Setup({
+      eventHandler: (data) => {
+        if (data.event === 'Checkout.Success') {
+          showToast('Success! Your order is being drafted.', 'success');
+        }
+      }
+    });
+  }
 
   /* ════════════════════════════════════════════════
      TOAST NOTIFICATION SYSTEM
@@ -33,29 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(dismiss, durationMs);
     toast.addEventListener('click', dismiss);
-  }
-
-  /* ════════════════════════════════════════════════
-     ANNOUNCEMENT BAR
-     ════════════════════════════════════════════════ */
-  const announceBar   = document.getElementById('announcement-bar');
-  const announceClose = document.getElementById('announcement-close');
-  const ANNOUNCE_KEY  = 'bla_announce_dismissed';
-
-  if (announceBar) {
-    // Restore dismissed state across sessions
-    if (sessionStorage.getItem(ANNOUNCE_KEY)) {
-      announceBar.classList.add('hidden');
-      document.body.classList.add('announce-hidden');
-    }
-
-    if (announceClose) {
-      announceClose.addEventListener('click', () => {
-        announceBar.classList.add('hidden');
-        document.body.classList.add('announce-hidden');
-        sessionStorage.setItem(ANNOUNCE_KEY, '1');
-      });
-    }
   }
 
   /* ════════════════════════════════════════════════
@@ -199,29 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.material-depth-img').forEach(img => depthImgObs.observe(img));
   } catch (e) { console.error('[reveal observer]', e); }
 
-  /* ════════════════════════════════════════════════
-     HERO CURSOR PARALLAX — Phase 2
-     Parallax applied to outer .hero-visual wrapper so the
-     child .hero-product-float keeps its CSS oscillation animation
-     uninterrupted. The wrapper provides the tilt; the child floats.
-     ════════════════════════════════════════════════ */
-  const heroVisualEl = document.getElementById('hero-visual');
-  const heroSection  = document.getElementById('hero');
-  if (heroVisualEl && heroSection) {
-    heroSection.addEventListener('mousemove', e => {
-      const rect = heroSection.getBoundingClientRect();
-      const cx = rect.width  / 2;
-      const cy = rect.height / 2;
-      const rx = ((e.clientY - rect.top  - cy) / cy) * -5;
-      const ry = ((e.clientX - rect.left - cx) / cx) *  8;
-      heroVisualEl.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-      heroVisualEl.style.transition = 'transform 0.12s linear';
-    });
-    heroSection.addEventListener('mouseleave', () => {
-      heroVisualEl.style.transform  = '';
-      heroVisualEl.style.transition = 'transform 0.8s cubic-bezier(0.23,1,0.32,1)';
-    });
-  }
+  // The Hero Popup and Visual Parallax logic was removed as the hero section has been retired.
 
   /* ════════════════════════════════════════════════
      COUNTDOWN TIMER — Phase 3
@@ -807,31 +781,33 @@ document.addEventListener('DOMContentLoaded', () => {
               <p class="edition-label">Statement Tee</p>
               <h3 class="orbit-card__title">${escapeHtml(product.title)}</h3>
               <p class="orbit-card__desc">${escapeHtml(product.short_description || '')}</p>
-              <div class="orbit-card__footer">
-                <span class="price-display">$${product.price.toFixed(2)}</span>
-                <button class="btn btn--primary orbit-card__cta" type="button"
-                        aria-label="Select size for ${escapeAttr(product.title)}">
-                  Select Size
-                </button>
-              </div>
+            <div class="orbit-card__footer">
+              <span class="price-display">$${product.price.toFixed(2)}</span>
+              <button class="btn btn--primary orbit-card__cta" type="button"
+                      ${product.lemonsqueezy_url ? `onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"` : ''}
+                      aria-label="${product.lemonsqueezy_url ? `Buy ${escapeAttr(product.title)}` : `Notify when ${escapeAttr(product.title)} is live`}">
+                ${product.lemonsqueezy_url ? 'Buy Now' : 'Get Early Access'}
+              </button>
             </div>
           </div>
-          <!-- Back Face: Size Selector -->
-          <div class="orbit-card__back" aria-label="Size selection for ${escapeAttr(product.title)}">
-            <p class="edition-label">Choose Your Size</p>
-            <h4 class="orbit-card__back-title">${escapeHtml(product.title)}</h4>
-            <div class="size-grid orbit-size-grid">
-              <button class="size-tag" data-size="XS" type="button">XS</button>
-              <button class="size-tag" data-size="S"  type="button">S</button>
-              <button class="size-tag" data-size="M"  type="button">M</button>
-              <button class="size-tag" data-size="L"  type="button">L</button>
-              <button class="size-tag" data-size="XL" type="button">XL</button>
-              <button class="size-tag" data-size="2XL" type="button">2XL</button>
-            </div>
-            <button class="btn btn--glass btn--sm size-guide-trigger" type="button">Size Guide ↗</button>
-            <button class="btn btn--primary orbit-card__add-btn" type="button" disabled>
-              Add to Cart
-            </button>
+        </div>
+        <!-- Back Face: Size Selector -->
+        <div class="orbit-card__back" aria-label="Size selection for ${escapeAttr(product.title)}">
+          <p class="edition-label">Choose Your Size</p>
+          <h4 class="orbit-card__back-title">${escapeHtml(product.title)}</h4>
+          <div class="size-grid orbit-size-grid">
+            <button class="size-tag" data-size="XS" type="button">XS</button>
+            <button class="size-tag" data-size="S"  type="button">S</button>
+            <button class="size-tag" data-size="M"  type="button">M</button>
+            <button class="size-tag" data-size="L"  type="button">L</button>
+            <button class="size-tag" data-size="XL" type="button">XL</button>
+            <button class="size-tag" data-size="2XL" type="button">2XL</button>
+          </div>
+          <button class="btn btn--glass btn--sm size-guide-trigger" type="button">Size Guide ↗</button>
+          <button class="btn btn--primary orbit-card__add-btn" type="button"
+                  ${product.lemonsqueezy_url ? `onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"` : 'disabled'}>
+            ${product.lemonsqueezy_url ? 'Buy Now' : 'Notify Me When Live'}
+          </button>
             <button class="btn btn--secondary btn--sm orbit-flip-back" type="button">← Back</button>
           </div>
         </div>
@@ -839,12 +815,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderTeeCard(product) {
-    const buyBtn = product.tiktok_url
-      ? `<a href="${product.tiktok_url}" class="btn btn--glass" target="_blank" rel="noopener noreferrer"
-             aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`
-      : `<button class="btn btn--glass" type="button"
-                 aria-label="Buy ${escapeAttr(product.title)}"
-                 data-open-modal="${product.id}">Buy Now</button>`;
+    let buyBtn = '';
+    if (product.lemonsqueezy_url) {
+      buyBtn = `<button class="btn btn--glass" type="button" onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"
+                         aria-label="Buy ${escapeAttr(product.title)}">Buy Now</button>`;
+    } else if (product.tiktok_url) {
+      buyBtn = `<a href="${product.tiktok_url}" class="btn btn--glass" target="_blank" rel="noopener noreferrer"
+                   aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`;
+    } else {
+      buyBtn = `<button class="btn btn--glass" type="button"
+                       aria-label="Notify when ${escapeAttr(product.title)} is live"
+                       data-open-modal="${product.id}">Get Early Access</button>`;
+    }
 
     return `
       <article class="product-card reveal" style="--glow-color: var(--color-pink)">
@@ -866,12 +848,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderAccessoryCard(product) {
-    const buyBtn = product.tiktok_url
-      ? `<a href="${product.tiktok_url}" class="btn btn--glass btn--sm" target="_blank" rel="noopener noreferrer"
-             aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`
-      : `<button class="btn btn--glass btn--sm" type="button"
-                 aria-label="Buy ${escapeAttr(product.title)}"
-                 data-open-modal="${product.id}">Buy Now</button>`;
+    let buyBtn = '';
+    if (product.lemonsqueezy_url) {
+      buyBtn = `<button class="btn btn--glass btn--sm" type="button" onclick="window.createLSCheckout('${product.lemonsqueezy_url}')"
+                         aria-label="Buy ${escapeAttr(product.title)}">Buy Now</button>`;
+    } else if (product.tiktok_url) {
+      buyBtn = `<a href="${product.tiktok_url}" class="btn btn--glass btn--sm" target="_blank" rel="noopener noreferrer"
+                   aria-label="${escapeAttr(product.title)} — Shop on TikTok">Shop on TikTok</a>`;
+    } else {
+      buyBtn = `<button class="btn btn--glass btn--sm" type="button"
+                       aria-label="Notify when ${escapeAttr(product.title)} is live"
+                       data-open-modal="${product.id}">Get Early Access</button>`;
+    }
 
     return `
       <article class="accessory-card reveal">
@@ -1089,7 +1077,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/products');
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      data = await res.json();
+      
+      const textResponse = await res.text();
+      try {
+        data = JSON.parse(textResponse);
+      } catch (parseErr) {
+        throw new Error('Failed to parse API response as JSON');
+      }
     } catch (err) {
       console.error('[loadProducts]', err);
       if (tshirtsGrid) tshirtsGrid.innerHTML = `
@@ -1159,6 +1153,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (heroQuickAdd) {
           heroQuickAdd.addEventListener('click', () => openCheckoutModal(first));
         }
+        const harborQuickAdd = document.getElementById('harbor-quick-add');
+        if (harborQuickAdd) {
+          harborQuickAdd.addEventListener('click', () => openCheckoutModal(first));
+        }
 
         // Sticky cart
         const cartImg  = document.getElementById('sticky-cart-img');
@@ -1176,5 +1174,127 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadProducts();
+
+  /* ════════════════════════════════════════════════
+     LUXURY SYSTEM — Institutional Grade
+     LV × Apple micro-interactions
+     ════════════════════════════════════════════════ */
+
+  /* ── Cursor Spotlight — follows cursor with a warm gold radial glow ── */
+  try {
+    const spotlight = document.getElementById('lux-spotlight');
+    if (spotlight && window.matchMedia('(pointer: fine)').matches) {
+      let rafId;
+      document.addEventListener('mousemove', e => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          spotlight.style.setProperty('--cx', `${e.clientX}px`);
+          spotlight.style.setProperty('--cy', `${e.clientY}px`);
+        });
+      });
+    }
+  } catch (e) { console.error('[spotlight]', e); }
+
+  /* ── Word-Stagger Reveal — splits .lux-title into words, staggers them in ── */
+  try {
+    const luxTitles = document.querySelectorAll('.lux-title');
+    luxTitles.forEach(el => {
+      // Preserve any <br> by working line-by-line
+      const html = el.innerHTML;
+      const parts = html.split(/(<br\s*\/?>)/gi);
+      el.innerHTML = parts.map(part => {
+        if (/^<br/i.test(part)) return part;
+        return part.trim().split(/\s+/).map((word, i) =>
+          `<span class="lux-word" style="transition-delay:${0.08 * i}s">${word}</span>`
+        ).join(' ');
+      }).join('');
+    });
+
+    const luxObs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('lux-title--ready');
+          luxObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.25 });
+
+    luxTitles.forEach(el => luxObs.observe(el));
+  } catch (e) { console.error('[lux-title]', e); }
+
+  /* ── Number Counter — animates stat numbers from 0 to target ── */
+  try {
+    const statEls = document.querySelectorAll('.material-stat__number[data-count]');
+
+    const countUp = (el) => {
+      const target = parseInt(el.getAttribute('data-count'), 10);
+      const suffix = el.getAttribute('data-suffix') || '';
+      const duration = 1400;
+      const start = performance.now();
+      const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+      const tick = (now) => {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        el.textContent = Math.round(easeOut(progress) * target) + suffix;
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+
+      requestAnimationFrame(tick);
+    };
+
+    const counterObs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          countUp(entry.target);
+          counterObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    statEls.forEach(el => {
+      el.textContent = '0';
+      counterObs.observe(el);
+    });
+  } catch (e) { console.error('[counter]', e); }
+
+  /* ── Section title underline draw — triggers .visible on scroll ── */
+  try {
+    const titleObs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          titleObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+
+    document.querySelectorAll('.section-title').forEach(el => titleObs.observe(el));
+  } catch (e) { console.error('[title-obs]', e); }
+
+  /* ── Staggered reveal for orbit-grid children on load ── */
+  try {
+    const gridObs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const cards = entry.target.querySelectorAll('.orbit-card, .product-card');
+          cards.forEach((card, i) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${i * 0.08}s, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${i * 0.08}s`;
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+              });
+            });
+          });
+          gridObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.orbit-grid, .products-grid').forEach(grid => gridObs.observe(grid));
+  } catch (e) { console.error('[grid-stagger]', e); }
 
 });

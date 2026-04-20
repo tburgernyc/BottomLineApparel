@@ -93,52 +93,57 @@ async function addToMailchimp({ email }) {
 */
 
 export default async function handler(req, res) {
-  commonHeaders(res);
-
-  if (!ALLOWED_METHODS.includes(req.method)) {
-    res.setHeader('Allow', ALLOWED_METHODS.join(', '));
-    return res.status(405).json({ error: 'method_not_allowed' });
-  }
-
-  // Parse body
-  let body;
   try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  } catch {
-    return res.status(400).json({ error: 'invalid_json' });
-  }
+    commonHeaders(res);
 
-  const { email, name, size, product_id, product_name, source = 'website' } = body || {};
-
-  // Validate email
-  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
-    return res.status(422).json({ error: 'invalid_email' });
-  }
-
-  const cleanEmail = email.trim().toLowerCase();
-
-  console.log(`[subscribe] email=${cleanEmail} source=${source} size=${size || '-'} product=${product_name || '-'}`);
-
-  // Attempt Klaviyo integration (non-blocking — degrades gracefully)
-  try {
-    const result = await addToKlaviyo({
-      email: cleanEmail,
-      name,
-      source,
-      size,
-      product_name,
-      product_id,
-    });
-
-    if (result.skipped) {
-      console.log(`[subscribe] Integration skipped: ${result.reason}`);
-    } else {
-      console.log(`[subscribe] Added to Klaviyo list`);
+    if (!ALLOWED_METHODS.includes(req.method)) {
+      res.setHeader('Allow', ALLOWED_METHODS.join(', '));
+      return res.status(405).json({ error: 'method_not_allowed' });
     }
-  } catch (err) {
-    // Log but don't fail the request — user experience > CRM reliability
-    console.error('[subscribe] Klaviyo error (non-fatal):', err.message);
-  }
 
-  return res.status(200).json({ ok: true, message: "You're on the list. 💅" });
+    // Parse body
+    let body;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch {
+      return res.status(400).json({ error: 'invalid_json' });
+    }
+
+    const { email, name, size, product_id, product_name, source = 'website' } = body || {};
+
+    // Validate email
+    if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
+      return res.status(422).json({ error: 'invalid_email' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    console.log(`[subscribe] email=${cleanEmail} source=${source} size=${size || '-'} product=${product_name || '-'}`);
+
+    // Attempt Klaviyo integration (non-blocking — degrades gracefully)
+    try {
+      const result = await addToKlaviyo({
+        email: cleanEmail,
+        name,
+        source,
+        size,
+        product_name,
+        product_id,
+      });
+
+      if (result.skipped) {
+        console.log(`[subscribe] Integration skipped: ${result.reason}`);
+      } else {
+        console.log(`[subscribe] Added to Klaviyo list`);
+      }
+    } catch (err) {
+      // Log but don't fail the request — user experience > CRM reliability
+      console.error('[subscribe] Klaviyo error (non-fatal):', err.message);
+    }
+
+    return res.status(200).json({ ok: true, message: "You're on the list. 💅" });
+  } catch (error) {
+    console.error('[subscribe] Unexpected outer handler error:', error);
+    return res.status(500).json({ error: 'internal_error', ok: false });
+  }
 }
