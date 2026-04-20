@@ -1,4 +1,6 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
     {
       "source": "/api/products",
@@ -27,11 +29,11 @@
         },
         {
           "key": "X-Frame-Options",
-          "value": "ALLOW-FROM https://app.lemonsqueezy.com"
+          "value": "DENY"
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://app.lemonsqueezy.com https://static.klaviyo.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://files.cdn.printful.com https://*.printful.com data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://a.klaviyo.com https://app.lemonsqueezy.com; frame-src 'self' https://app.lemonsqueezy.com; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://app.lemonsqueezy.com https://static.klaviyo.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://analytics.tiktok.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://files.cdn.printful.com https://*.printful.com https://www.google-analytics.com https://www.facebook.com data: blob:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://a.klaviyo.com https://app.lemonsqueezy.com https://*.google-analytics.com https://*.analytics.google.com https://*.g.doubleclick.net; frame-src 'self' https://app.lemonsqueezy.com; frame-ancestors 'none';"
         }
       ]
     },
@@ -47,7 +49,8 @@
   ],
   "functions": {
     "api/products.js": {
-      "maxDuration": 15
+      "maxDuration": 15,
+      "includeFiles": ["product_mapping.json"]
     },
     "api/subscribe.js": {
       "maxDuration": 10
@@ -56,4 +59,4 @@
       "maxDuration": 20
     }
   }
-}
+}

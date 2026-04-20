@@ -365,6 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let allProducts = {}; // populated after load
 
+  function findProductById(id) {
+    const categories = ['tshirts', 'tanks', 'hoodies', 'phoneCases', 'accessories'];
+    for (const cat of categories) {
+      const found = (allProducts[cat] || []).find(p => String(p.id) === String(id));
+      if (found) return found;
+    }
+    return null;
+  }
+
   function openCheckoutModal(product) {
     if (!checkoutModal) return;
     document.getElementById('modal-product-img').src  = product.image;
@@ -455,63 +464,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Modal form submit — POST to /api/subscribe
-  const modalForm = document.getElementById('modal-form');
-  if (modalForm) {
-    modalForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      if (!modalMsg || !modalSubmitBtn) return;
+  // Modal form submit — captures leads + redirects to Lemon Squeezy
+  const modalForm = document.getElementById('signup-form'); // Note: index.html has #signup-form in both footer and modal? wait.
+  // Actually, index.html has <div class="modal__step" id="modal-step-1">...</div>
+  // Let's check modal form ID.
+  // In index.html line 154, there is NO <form> tag inside the modal__step.
+  // I should probably wrap it or use the button listener. 
+  // Wait, I see id="modal-step1-btn" in index.html.
 
+  const modalStep1Btn = document.getElementById('modal-step1-btn');
+  if (modalStep1Btn) {
+    modalStep1Btn.addEventListener('click', async () => {
       const name  = document.getElementById('modal-name')?.value.trim();
       const email = document.getElementById('modal-email')?.value.trim();
       const size  = modalSelSize?.value;
       const productId   = document.getElementById('modal-product-id')?.value;
-      const productName = document.getElementById('modal-product-name')?.textContent;
+      
+      if (!name || !email || !size || !productId) return;
 
-      if (!name) {
-        modalMsg.textContent = 'Enter your name.';
-        modalMsg.className   = 'modal__msg modal__msg--error';
-        return;
-      }
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        modalMsg.textContent = "That doesn't look like a real email.";
-        modalMsg.className   = 'modal__msg modal__msg--error';
-        return;
-      }
-      if (!size) {
-        modalMsg.textContent = 'Please select a size.';
-        modalMsg.className   = 'modal__msg modal__msg--error';
+      const product = findProductById(productId);
+      if (!product || !product.lemonsqueezy_url) {
+        showToast('Checkout currently unavailable for this item.', 'error');
         return;
       }
 
-      modalSubmitBtn.disabled  = true;
-      modalSubmitBtn.textContent = 'Reserving…';
+      modalStep1Btn.disabled = true;
+      modalStep1Btn.textContent = 'Redirecting…';
 
+      // 1. Log the lead/reservation in our DB (api/subscribe)
       try {
-        const res = await fetch('/api/subscribe', {
+        await fetch('/api/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, size, product_id: productId, product_name: productName }),
+          body: JSON.stringify({ name, email, size, product_id: productId, product_name: product.title, source: 'modal_checkout' }),
         });
-        const data = await res.json().catch(() => ({}));
-
-        if (res.ok) {
-          modalMsg.textContent = `You're on the list for size ${size}! Check your inbox. 💅`;
-          modalMsg.className   = 'modal__msg modal__msg--success';
-          showToast(`Reserved in size ${size} — check your inbox!`, 'success');
-          modalForm.reset();
-          modalSizeGrid?.querySelectorAll('.size-tag').forEach(t => t.classList.remove('selected'));
-        } else {
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
       } catch (err) {
-        console.error('[modal form]', err);
-        modalMsg.textContent = 'Something went wrong — try again in a sec.';
-        modalMsg.className   = 'modal__msg modal__msg--error';
-        showToast('Something went wrong — try again.', 'error');
-        modalSubmitBtn.disabled    = false;
-        modalSubmitBtn.textContent = 'Reserve My Shirt →';
+        console.warn('[checkout] Lead capture failed (non-fatal):', err.message);
       }
+
+      // 2. Redirect to Lemon Squeezy with pre-filled fields
+      const checkoutUrl = new URL(product.lemonsqueezy_url);
+      checkoutUrl.searchParams.set('checkout[email]', email);
+      checkoutUrl.searchParams.set('checkout[name]', name);
+      
+      // Elephant directive: Smooth institutional-grade redirect
+      window.location.href = checkoutUrl.toString();
     });
   }
 

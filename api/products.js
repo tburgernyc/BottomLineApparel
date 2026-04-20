@@ -97,14 +97,16 @@ export default async function handler(req, res) {
   const apiKey = process.env.PRINTFUL_API_KEY;
   const storeId = process.env.PRINTFUL_STORE_ID;
 
+  // Nemotron Directive: Fail fast if environment is misconfigured
   if (!apiKey || !storeId) {
+    console.error('[api/products] Configuration missing: PRINTFUL_API_KEY or PRINTFUL_STORE_ID');
     return res.status(503).json({
-      error: 'missing_env',
-      hint: 'Add PRINTFUL_API_KEY and PRINTFUL_STORE_ID in Vercel Dashboard.',
+      error: 'configuration_missing',
+      message: 'Server is not configured with Printful credentials.',
     });
   }
 
-  // Load product mapping once
+  // Load product mapping
   let productMapping = [];
   try {
     const mappingPath = path.join(process.cwd(), 'product_mapping.json');
@@ -112,7 +114,8 @@ export default async function handler(req, res) {
     const mapping = JSON.parse(mappingData);
     productMapping = mapping.products || [];
   } catch (err) {
-    console.warn('[api/products] Mapping read failed or file missing:', err.message);
+    // Elephant Directive: Maintain "Institutional-grade" uptime even if local data is missing
+    console.warn('[api/products] Mapping read failed (non-fatal):', err.message);
   }
 
   const headers = pfHeaders(apiKey, storeId);

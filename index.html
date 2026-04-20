@@ -26,6 +26,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+  <!-- Core preconnects for premium performance -->
+  <link rel="preconnect" href="https://app.lemonsqueezy.com" />
+  <link rel="preconnect" href="https://static.klaviyo.com" />
   <!-- Lemon Squeezy — Merchant of Record payments (Apple Pay / Google Pay enabled) -->
   <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
   <!-- Klaviyo — onsite JS for email capture, pop-ups, and event tracking -->
@@ -164,44 +167,18 @@
         <input type="hidden" id="modal-selected-size" name="size" value="" />
         <input type="hidden" id="modal-product-id" name="product_id" value="" />
         <button type="button" class="btn btn--primary modal__submit" id="modal-step1-btn" disabled>
-          Continue to Payment →
+          Go to Checkout →
         </button>
         <p class="modal__disclaimer">Order confirmed instantly. Fulfilled by Printful &amp; shipped to your door.</p>
         <p class="modal__msg" id="modal-msg" aria-live="polite"></p>
       </div>
 
-      <!-- Step 2: Stripe payment -->
-      <div class="modal__step modal__step--payment" id="modal-step-2" hidden>
-        <button type="button" class="modal__back-btn" id="modal-back-btn" aria-label="Go back">← Back</button>
-        <div class="modal__order-summary" id="modal-order-summary">
-          <span class="edition-label" id="modal-summary-name">—</span>
-          <span class="modal__summary-sep">·</span>
-          <span id="modal-summary-size">—</span>
-          <span class="modal__summary-sep">·</span>
-          <strong id="modal-summary-price">$—</strong>
-        </div>
-        <div class="stripe-element-wrap">
-          <label class="stripe-element-label">Card Details</label>
-          <div id="stripe-payment-element">
-            <!-- Stripe Payment Element mounts here -->
-          </div>
-          <p class="stripe-element-error" id="stripe-error" role="alert" aria-live="polite"></p>
-        </div>
-        <button type="button" class="btn btn--primary modal__submit modal__pay-btn" id="modal-pay-btn" disabled>
-          Pay <span id="modal-pay-amount">$—</span> →
-        </button>
-        <div class="modal__secure-note">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Secured by Stripe. We never see your card number.
-        </div>
-
-        <!-- Success state (shown after payment) -->
-        <div class="modal__success" id="modal-success" hidden>
-          <div class="modal__success-icon" aria-hidden="true">✓</div>
-          <h3 class="modal__success-title">Order Confirmed!</h3>
-          <p class="modal__success-msg">Check your inbox for a confirmation email. Your shirt ships in 2–7 business days.</p>
-          <button type="button" class="btn btn--ghost" id="modal-success-close">Close</button>
-        </div>
+      <!-- Success state (shown after reservation) -->
+      <div class="modal__success" id="modal-success" hidden>
+        <div class="modal__success-icon" aria-hidden="true">✓</div>
+        <h3 class="modal__success-title">Reservation Confirmed!</h3>
+        <p class="modal__success-msg">You're on the list. Check your inbox for the next steps and exclusive drop access.</p>
+        <button type="button" class="btn btn--ghost" id="modal-success-close">Close</button>
       </div>
     </div>
   </div>
@@ -682,7 +659,6 @@
     window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // Replace with real GA4 Measurement ID
     window.BLA_TTQ_ID       = '';               // Replace with TikTok Pixel ID, or leave blank
     window.BLA_META_ID      = '';               // Replace with Meta Pixel ID, or leave blank
-    window.BLA_STRIPE_PK    = 'pk_test_...';    // Replace with Stripe publishable key (safe for frontend)
   </script>
 
   <script src="script.js"></script>
