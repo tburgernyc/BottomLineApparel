@@ -42,20 +42,37 @@ function pfHeaders(apiKey, storeId) {
   return headers;
 }
 
-// Preferred colors for the main product card image (checked in order)
-const PREFERRED_COLORS = ['white', 'solid white', 'gray', 'grey', 'heather gray', 'heather grey', 'ash', 'silver', 'light gray', 'light grey', 'oatmeal'];
+// Default preferred colors for the main product card image
+const DEFAULT_PREFERRED_COLORS = ['white', 'solid white', 'gray', 'grey', 'heather gray', 'heather grey', 'ash', 'silver', 'light gray', 'light grey', 'oatmeal'];
 
-function isPreferredColor(variant) {
+// Per-product color overrides — matched by product name keywords
+const COLOR_OVERRIDES = [
+  { keywords: ['crop hoodie'],  colors: ['storm'] },
+  { keywords: ['sweatpant', 'jogger'], colors: ['athletic heather', 'heather', 'gray', 'grey'] },
+];
+
+/**
+ * Get the preferred color list for a specific product name.
+ */
+function getPreferredColors(productName) {
+  const lower = (productName || '').toLowerCase();
+  for (const rule of COLOR_OVERRIDES) {
+    if (rule.keywords.some(k => lower.includes(k))) return rule.colors;
+  }
+  return DEFAULT_PREFERRED_COLORS;
+}
+
+function isPreferredColor(variant, preferredColors) {
   // Check the variant's product name for color info (e.g. "... (Solid White Triblend / XS)")
   const rawName = (variant.product?.name || variant.name || '').toLowerCase();
   const colorMatch = rawName.match(/\(([^()]+)\)\s*$/);
   if (colorMatch) {
     const colorPart = colorMatch[1].split('/')[0].trim().toLowerCase();
-    if (PREFERRED_COLORS.some(c => colorPart.includes(c))) return true;
+    if (preferredColors.some(c => colorPart.includes(c))) return true;
   }
   // Also check the variant's color field if present
   const color = (variant.color || '').toLowerCase();
-  if (color && PREFERRED_COLORS.some(c => color.includes(c))) return true;
+  if (color && preferredColors.some(c => color.includes(c))) return true;
   return false;
 }
 
@@ -75,18 +92,19 @@ function getVariantPreview(variant) {
 /**
  * Select the best product card image from all variants.
  * Priority:
- *   1. White/gray variant with a FRONT-facing preview
+ *   1. Preferred-color variant with a FRONT-facing preview
  *   2. Any variant with a FRONT-facing preview
- *   3. White/gray variant with any preview
+ *   3. Preferred-color variant with any preview
  *   4. Any variant with any preview
  *   5. Product thumbnail
  */
 function bestProductImage(syncProduct, syncVariants) {
   const enabled = (syncVariants || []).filter(v => v.is_enabled !== false && !v.is_ignored);
+  const preferredColors = getPreferredColors(syncProduct.name);
 
   // Pass 1: preferred color + front-facing preview
   for (const variant of enabled) {
-    if (isPreferredColor(variant)) {
+    if (isPreferredColor(variant, preferredColors)) {
       const p = getVariantPreview(variant);
       if (p && p.isFront) return p.url;
     }
@@ -100,7 +118,7 @@ function bestProductImage(syncProduct, syncVariants) {
 
   // Pass 3: preferred color + any preview (even back)
   for (const variant of enabled) {
-    if (isPreferredColor(variant)) {
+    if (isPreferredColor(variant, preferredColors)) {
       const p = getVariantPreview(variant);
       if (p) return p.url;
     }
