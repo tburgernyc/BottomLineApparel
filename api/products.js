@@ -43,10 +43,10 @@ function pfHeaders(apiKey, storeId) {
 }
 
 // Preferred colors for the main product card image (checked in order)
-const PREFERRED_COLORS = ['white', 'gray', 'grey', 'heather gray', 'heather grey', 'ash', 'silver', 'light gray', 'light grey'];
+const PREFERRED_COLORS = ['white', 'solid white', 'gray', 'grey', 'heather gray', 'heather grey', 'ash', 'silver', 'light gray', 'light grey', 'oatmeal'];
 
 function isPreferredColor(variant) {
-  // Check the variant's product name for color info (e.g. "... (White / XS)")
+  // Check the variant's product name for color info (e.g. "... (Solid White Triblend / XS)")
   const rawName = (variant.product?.name || variant.name || '').toLowerCase();
   const colorMatch = rawName.match(/\(([^()]+)\)\s*$/);
   if (colorMatch) {
@@ -59,43 +59,68 @@ function isPreferredColor(variant) {
   return false;
 }
 
-function getVariantFrontImage(variant) {
+/**
+ * Get the preview mockup image for a variant.
+ * Returns { url, isFront } where isFront indicates the filename contains 'front'.
+ */
+function getVariantPreview(variant) {
   const files = variant.files || [];
-  // Priority: front_large_dtf → any 'front*' type → 'default' → 'preview' (often the back)
-  const frontDtf = files.find(f => f.type === 'front_large_dtf');
-  if (frontDtf && frontDtf.preview_url) return frontDtf.preview_url;
-  const anyFront = files.find(f => f.type.startsWith('front'));
-  if (anyFront && anyFront.preview_url) return anyFront.preview_url;
-  const defaultFile = files.find(f => f.type === 'default');
-  if (defaultFile && defaultFile.preview_url) return defaultFile.preview_url;
   const preview = files.find(f => f.type === 'preview');
-  if (preview && preview.preview_url) return preview.preview_url;
-  return null;
+  if (!preview || !preview.preview_url) return null;
+  const filename = (preview.filename || '').toLowerCase();
+  const isFront = filename.includes('front');
+  return { url: preview.preview_url, isFront };
 }
 
+/**
+ * Select the best product card image from all variants.
+ * Priority:
+ *   1. White/gray variant with a FRONT-facing preview
+ *   2. Any variant with a FRONT-facing preview
+ *   3. White/gray variant with any preview
+ *   4. Any variant with any preview
+ *   5. Product thumbnail
+ */
 function bestProductImage(syncProduct, syncVariants) {
   const enabled = (syncVariants || []).filter(v => v.is_enabled !== false && !v.is_ignored);
 
-  // First pass: try to find a white/gray variant with a front image
+  // Pass 1: preferred color + front-facing preview
   for (const variant of enabled) {
     if (isPreferredColor(variant)) {
-      const img = getVariantFrontImage(variant);
-      if (img) return img;
+      const p = getVariantPreview(variant);
+      if (p && p.isFront) return p.url;
     }
   }
 
-  // Second pass: any variant with a front image
+  // Pass 2: any color + front-facing preview
   for (const variant of enabled) {
-    const img = getVariantFrontImage(variant);
-    if (img) return img;
+    const p = getVariantPreview(variant);
+    if (p && p.isFront) return p.url;
+  }
+
+  // Pass 3: preferred color + any preview (even back)
+  for (const variant of enabled) {
+    if (isPreferredColor(variant)) {
+      const p = getVariantPreview(variant);
+      if (p) return p.url;
+    }
+  }
+
+  // Pass 4: any preview at all
+  for (const variant of enabled) {
+    const p = getVariantPreview(variant);
+    if (p) return p.url;
   }
 
   return syncProduct.thumbnail_url || null;
 }
 
+/**
+ * Get the best image for an individual variant (used in variant picker).
+ */
 function variantImage(variant) {
-  const img = getVariantFrontImage(variant);
-  if (img) return img;
+  const p = getVariantPreview(variant);
+  if (p) return p.url;
   return variant.product?.image || null;
 }
 
