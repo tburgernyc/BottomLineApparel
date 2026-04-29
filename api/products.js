@@ -42,18 +42,56 @@ function pfHeaders(apiKey, storeId) {
   return headers;
 }
 
+// Preferred colors for the main product card image (checked in order)
+const PREFERRED_COLORS = ['white', 'gray', 'grey', 'heather gray', 'heather grey', 'ash', 'silver', 'light gray', 'light grey'];
+
+function isPreferredColor(variant) {
+  // Check the variant's product name for color info (e.g. "... (White / XS)")
+  const rawName = (variant.product?.name || variant.name || '').toLowerCase();
+  const colorMatch = rawName.match(/\(([^()]+)\)\s*$/);
+  if (colorMatch) {
+    const colorPart = colorMatch[1].split('/')[0].trim().toLowerCase();
+    if (PREFERRED_COLORS.some(c => colorPart.includes(c))) return true;
+  }
+  // Also check the variant's color field if present
+  const color = (variant.color || '').toLowerCase();
+  if (color && PREFERRED_COLORS.some(c => color.includes(c))) return true;
+  return false;
+}
+
+function getVariantFrontImage(variant) {
+  const files = variant.files || [];
+  // Prefer 'front' type, then fall back to 'preview'
+  const front = files.find(f => f.type === 'front');
+  if (front && front.preview_url) return front.preview_url;
+  const preview = files.find(f => f.type === 'preview');
+  if (preview && preview.preview_url) return preview.preview_url;
+  return null;
+}
+
 function bestProductImage(syncProduct, syncVariants) {
   const enabled = (syncVariants || []).filter(v => v.is_enabled !== false && !v.is_ignored);
+
+  // First pass: try to find a white/gray variant with a front image
   for (const variant of enabled) {
-    const preview = (variant.files || []).find(f => f.type === 'preview');
-    if (preview && preview.preview_url) return preview.preview_url;
+    if (isPreferredColor(variant)) {
+      const img = getVariantFrontImage(variant);
+      if (img) return img;
+    }
   }
+
+  // Second pass: any variant with a front image
+  for (const variant of enabled) {
+    const img = getVariantFrontImage(variant);
+    if (img) return img;
+  }
+
   return syncProduct.thumbnail_url || null;
 }
 
 function variantImage(variant) {
-  const preview = (variant.files || []).find(f => f.type === 'preview');
-  if (preview && preview.preview_url) return preview.preview_url;
+  const img = getVariantFrontImage(variant);
+  if (img) return img;
   return variant.product?.image || null;
 }
 
