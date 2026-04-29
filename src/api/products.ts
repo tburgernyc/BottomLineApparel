@@ -1,5 +1,6 @@
 import { escapeHtml, escapeAttr } from '../utils/helpers';
 import { openCheckoutModal } from '../ui/modals';
+import { observeNewReveals } from '../interactions/scroll';
 
 export interface Variant {
     id: number;
@@ -178,6 +179,9 @@ export async function loadProducts() {
     }
 
     attachProductListeners();
+
+    // Observe newly-injected .reveal product cards so they animate in
+    observeNewReveals();
 
   } catch (err) {
     console.error('[loadProducts]', err);

@@ -1,6 +1,21 @@
 /**
  * Scroll-based interactions: Sticky cart, reveal observers, and smooth scroll.
  */
+
+/** Shared reveal observer — reused for dynamically-added elements */
+let revealObs: IntersectionObserver | null = null;
+
+/**
+ * Observe any `.reveal` / `.reveal-wipe` elements that haven't been observed yet.
+ * Call this after dynamically injecting new content (e.g. product cards).
+ */
+export function observeNewReveals() {
+  if (!revealObs) return;
+  document.querySelectorAll('.reveal:not(.visible), .reveal-wipe:not(.visible)').forEach(el => {
+    revealObs!.observe(el);
+  });
+}
+
 export function initScrollInteractions() {
   // Smooth Scroll
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -19,16 +34,16 @@ export function initScrollInteractions() {
 
   // Reveal Observers
   try {
-    const revealObs = new IntersectionObserver(entries => {
+    revealObs = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
-          revealObs.unobserve(entry.target);
+          revealObs!.unobserve(entry.target);
         }
       });
     }, { threshold: 0.12 });
 
-    document.querySelectorAll('.reveal, .reveal-wipe').forEach(el => revealObs.observe(el));
+    document.querySelectorAll('.reveal, .reveal-wipe').forEach(el => revealObs!.observe(el));
 
     const depthImgObs = new IntersectionObserver(entries => {
       entries.forEach(entry => {
