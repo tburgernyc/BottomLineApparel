@@ -76,7 +76,12 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'variant_lookup_failed' });
   }
 
-  if (!variantInfo || !variantInfo.variant?.is_enabled || variantInfo.variant?.is_ignored) {
+  if (!variantInfo) {
+    console.error(`[checkout] No variantInfo for ${syncVariantId}`);
+    return res.status(404).json({ error: 'variant_not_found' });
+  }
+  if (variantInfo.variant?.is_enabled === false || variantInfo.variant?.is_ignored === true) {
+    console.warn(`[checkout] Variant ${syncVariantId} is disabled or ignored`);
     return res.status(404).json({ error: 'variant_not_available' });
   }
 
