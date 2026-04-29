@@ -88,35 +88,42 @@ const SIZE_TOKENS = new Set([
   'one size', 'os',
 ]);
 
-// Parse a variant label like "Black / S" or "iPhone 14 / Glossy" or just "Black".
-// Heuristic: split on " / ". If 2 parts and one looks like a size token, that's the size.
-// Otherwise treat the first as color and second as size by convention.
-function parseVariantLabel(label) {
-  if (!label) return { color: null, size: null };
-  const parts = label.split('/').map(s => s.trim()).filter(Boolean);
+// Printful's sync_variant.product.name embeds the variant info inside the LAST
+// parenthesized group, e.g. "Bella + Canvas 3413 Unisex Tee (Navy Triblend / XS)".
+// Strip the garment description and return just what's inside the last (...).
+function extractVariantInfo(rawLabel) {
+  if (!rawLabel) return '';
+  const m = rawLabel.match(/\(([^()]+)\)\s*$/);
+  return m ? m[1].trim() : rawLabel.trim();
+}
+
+// Parse the cleaned variant info ("Navy Triblend / XS" or "Matte / iPhone 14"
+// or "16 oz"). Printful's convention is "Color / Size" — we trust that order
+// for 2-part labels rather than guessing which side is which.
+function parseVariantLabel(rawLabel) {
+  const cleaned = extractVariantInfo(rawLabel);
+  if (!cleaned) return { color: null, size: null, label: '' };
+  const parts = cleaned.split('/').map(s => s.trim()).filter(Boolean);
   if (parts.length === 1) {
     const lower = parts[0].toLowerCase();
-    if (SIZE_TOKENS.has(lower)) return { color: null, size: parts[0] };
-    return { color: parts[0], size: null };
+    const looksLikeSize = SIZE_TOKENS.has(lower) || /^\d+(\.\d+)?$/.test(parts[0]);
+    if (looksLikeSize) return { color: null, size: parts[0], label: cleaned };
+    return { color: parts[0], size: null, label: cleaned };
   }
-  // 2+ parts: detect which is the size
-  const sizeIdx = parts.findIndex(p => SIZE_TOKENS.has(p.toLowerCase()));
-  if (sizeIdx >= 0) {
-    const size = parts[sizeIdx];
-    const color = parts.filter((_, i) => i !== sizeIdx).join(' / ') || null;
-    return { color, size };
-  }
-  // Convention: "Color / Size" — last part is size
-  return { color: parts.slice(0, -1).join(' / '), size: parts[parts.length - 1] };
+  return {
+    color: parts[0],
+    size: parts.slice(1).join(' / '),
+    label: cleaned,
+  };
 }
 
 function shapeVariant(syncVariant) {
   const price = parseFloat(syncVariant.retail_price);
-  const label = syncVariant.product?.name || syncVariant.name || '';
-  const { color, size } = parseVariantLabel(label);
+  const rawLabel = syncVariant.product?.name || syncVariant.name || '';
+  const { color, size, label } = parseVariantLabel(rawLabel);
   return {
     id: syncVariant.id, // sync_variant_id — what /api/checkout takes
-    label,
+    label, // cleaned, e.g. "Navy Triblend / XS"
     color,
     size,
     price: Number.isFinite(price) ? price : null,

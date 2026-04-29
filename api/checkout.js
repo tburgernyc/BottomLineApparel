@@ -37,6 +37,14 @@ function bestVariantImage(variant) {
   return variant.product?.image || null;
 }
 
+// Printful sync_variant.product.name = "<Garment desc> (<Color> / <Size>)".
+// Extract just the parenthesized variant info for customer-facing display.
+function extractVariantInfo(rawLabel) {
+  if (!rawLabel) return '';
+  const m = rawLabel.match(/\(([^()]+)\)\s*$/);
+  return m ? m[1].trim() : rawLabel.trim();
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'method_not_allowed' });
@@ -80,8 +88,8 @@ export default async function handler(req, res) {
   }
 
   const productTitle = product?.name || variant.name || 'Bottom Line Apparel item';
-  const variantLabel = variant.product?.name || '';
-  const fullName = variantLabel && !productTitle.includes(variantLabel)
+  const variantLabel = extractVariantInfo(variant.product?.name || '');
+  const fullName = variantLabel
     ? `${productTitle} — ${variantLabel}`
     : productTitle;
   const image = bestVariantImage(variant);
