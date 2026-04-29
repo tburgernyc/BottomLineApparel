@@ -1,9 +1,0 @@
-{
-  "products": [
-    {
-      "id": "printful_product_id_here",
-      "lemonsqueezy_url": "https://bottomline.lemonsqueezy.com/checkout/buy/VARIANT_ID_HERE?embed=1"
-    }
-  ],
-  "note": "Replace VARIANT_ID_HERE with the actual Variant ID from your Lemon Squeezy dashboard. Repeat for each item."
-}

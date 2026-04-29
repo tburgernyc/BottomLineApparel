@@ -27,10 +27,7 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
   <!-- Core preconnects for premium performance -->
-  <link rel="preconnect" href="https://app.lemonsqueezy.com" />
   <link rel="preconnect" href="https://static.klaviyo.com" />
-  <!-- Lemon Squeezy — Merchant of Record payments (Apple Pay / Google Pay enabled) -->
-  <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
   <!-- Klaviyo — onsite JS for email capture, pop-ups, and event tracking -->
   <script async type="text/javascript" src="https://static.klaviyo.com/onsite/js/WPcja9/klaviyo.js?company_id=WPcja9"></script>
   <script type="text/javascript">
@@ -132,19 +129,17 @@
         </div>
       </div>
 
-      <div class="modal__size-section">
-        <p class="modal__size-label">Select Your Size</p>
-        <div class="size-grid" id="modal-size-grid">
-          <button class="size-tag" data-size="XS">XS</button>
-          <button class="size-tag" data-size="S">S</button>
-          <button class="size-tag" data-size="M">M</button>
-          <button class="size-tag" data-size="L">L</button>
-          <button class="size-tag" data-size="XL">XL</button>
-          <button class="size-tag" data-size="2XL">2XL</button>
-        </div>
-        <button class="btn btn--secondary btn--sm size-guide-trigger" id="modal-size-guide-btn" type="button">
-          Size Guide ↗
-        </button>
+      <!-- Variant pickers (color, size) injected by JS based on actual Printful variants -->
+      <div class="modal__variant-section" id="modal-variant-section"></div>
+
+      <button class="btn btn--secondary btn--sm size-guide-trigger" id="modal-size-guide-btn" type="button">
+        Size Guide ↗
+      </button>
+
+      <!-- Quantity -->
+      <div class="modal__qty-section">
+        <label for="modal-quantity" class="modal__qty-label">Qty</label>
+        <input type="number" id="modal-quantity" min="1" max="10" value="1" />
       </div>
 
       <!-- Upsell Hook -->
@@ -153,33 +148,13 @@
         <div class="modal__upsell-grid" id="modal-upsell-grid"></div>
       </div>
 
-      <!-- Step 1: Contact info -->
-      <div class="modal__step" id="modal-step-1">
-        <p class="modal__form-heading">Your Details</p>
-        <div class="modal__form-row">
-          <label for="modal-name" class="sr-only">Your name</label>
-          <input type="text" id="modal-name" name="name" placeholder="Your name" autocomplete="name" required />
-        </div>
-        <div class="modal__form-row">
-          <label for="modal-email" class="sr-only">Email address</label>
-          <input type="email" id="modal-email" name="email" placeholder="your@email.com" autocomplete="email" required />
-        </div>
-        <input type="hidden" id="modal-selected-size" name="size" value="" />
-        <input type="hidden" id="modal-product-id" name="product_id" value="" />
-        <button type="button" class="btn btn--primary modal__submit" id="modal-step1-btn" disabled>
-          Go to Checkout →
-        </button>
-        <p class="modal__disclaimer">Order confirmed instantly. Fulfilled by Printful &amp; shipped to your door.</p>
-        <p class="modal__msg" id="modal-msg" aria-live="polite"></p>
-      </div>
-
-      <!-- Success state (shown after reservation) -->
-      <div class="modal__success" id="modal-success" hidden>
-        <div class="modal__success-icon" aria-hidden="true">✓</div>
-        <h3 class="modal__success-title">Reservation Confirmed!</h3>
-        <p class="modal__success-msg">You're on the list. Check your inbox for the next steps and exclusive drop access.</p>
-        <button type="button" class="btn btn--ghost" id="modal-success-close">Close</button>
-      </div>
+      <input type="hidden" id="modal-product-id" value="" />
+      <input type="hidden" id="modal-selected-variant-id" value="" />
+      <button type="button" class="btn btn--primary modal__submit" id="modal-buy-btn" disabled>
+        Buy Now →
+      </button>
+      <p class="modal__disclaimer">Secure checkout via Stripe. Fulfilled by Printful &amp; shipped to your door.</p>
+      <p class="modal__msg" id="modal-msg" aria-live="polite"></p>
     </div>
   </div>
 
@@ -522,6 +497,11 @@
         <p class="edition-label reveal">More Drops</p>
         <h2 class="section-title reveal">Also in the Collection</h2>
 
+        <h3 class="subcategory-title" id="crop-tops-title" style="display:none;">Crop Tops</h3>
+        <div class="orbit-grid" id="crop-tops-grid" aria-label="Crop top products">
+          <!-- Crop tops injected here -->
+        </div>
+
         <h3 class="subcategory-title" id="tanks-title" style="display:none;">Tank Tops</h3>
         <div class="products-grid" id="tanks-grid">
           <!-- Tanks injected here -->
@@ -530,6 +510,11 @@
         <h3 class="subcategory-title" id="hoodies-title" style="display:none;">Hoodies</h3>
         <div class="products-grid" id="hoodies-grid">
           <!-- Hoodies injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="bottoms-title" style="display:none;">Bottoms</h3>
+        <div class="products-grid" id="bottoms-grid">
+          <!-- Bottoms injected here -->
         </div>
       </div>
     </section>
@@ -541,6 +526,29 @@
         <h2 class="section-title reveal">Phone Cases</h2>
         <div class="products-grid" id="phone-cases-grid">
           <!-- Phone cases injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ LIFESTYLE & GOODS ═══════════════════ -->
+    <section class="accessories-section" id="lifestyle">
+      <div class="container">
+        <p class="edition-label reveal">More From the Drop</p>
+        <h2 class="section-title reveal">Lifestyle &amp; Goods</h2>
+
+        <h3 class="subcategory-title" id="headwear-title" style="display:none;">Headwear</h3>
+        <div class="products-grid" id="headwear-grid">
+          <!-- Headwear injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="footwear-title" style="display:none;">Footwear</h3>
+        <div class="products-grid" id="footwear-grid">
+          <!-- Footwear injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="accessories-title" style="display:none;">Lifestyle Goods</h3>
+        <div class="products-grid" id="accessories-grid">
+          <!-- Lifestyle goods injected here -->
         </div>
       </div>
     </section>

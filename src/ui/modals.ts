@@ -1,40 +1,178 @@
-import { Product, allProducts } from '../api/products';
+import { Product, Variant, allProducts } from '../api/products';
 import { escapeHtml, escapeAttr } from '../utils/helpers';
 import { showToast } from './toast';
-import { submitSubscribe } from '../api/subscribe';
 
 const checkoutModal = document.getElementById('checkout-modal');
-const modalSizeGrid = document.getElementById('modal-size-grid');
-const modalSelSize = document.getElementById('modal-selected-size') as HTMLInputElement;
-const modalSubmitBtn = document.getElementById('modal-step1-btn') as HTMLButtonElement;
+const variantSection = document.getElementById('modal-variant-section');
+const buyBtn = document.getElementById('modal-buy-btn') as HTMLButtonElement | null;
+const selectedVariantInput = document.getElementById('modal-selected-variant-id') as HTMLInputElement | null;
+const productIdInput = document.getElementById('modal-product-id') as HTMLInputElement | null;
+const qtyInput = document.getElementById('modal-quantity') as HTMLInputElement | null;
 const modalUpsellGrid = document.getElementById('modal-upsell-grid');
 const modalUpsell = document.getElementById('modal-upsell');
+const modalMsg = document.getElementById('modal-msg');
+
+let activeProduct: Product | null = null;
+
+function uniqueOptions(variants: Variant[], key: 'color' | 'size'): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of variants) {
+    const val = v[key];
+    if (val && !seen.has(val)) {
+      seen.add(val);
+      out.push(val);
+    }
+  }
+  return out;
+}
+
+function findMatchingVariant(product: Product, color: string | null, size: string | null): Variant | null {
+  return product.variants.find(v =>
+    (color === null || v.color === color) &&
+    (size === null || v.size === size)
+  ) || null;
+}
+
+function renderVariantPicker(product: Product) {
+  if (!variantSection) return;
+  variantSection.innerHTML = '';
+
+  const colors = uniqueOptions(product.variants, 'color');
+  const sizes = uniqueOptions(product.variants, 'size');
+
+  // Single-variant product: nothing to pick. Auto-select.
+  if (product.variants.length === 1) {
+    if (selectedVariantInput) selectedVariantInput.value = String(product.variants[0].id);
+    if (buyBtn) buyBtn.disabled = false;
+    return;
+  }
+
+  if (colors.length > 1) {
+    const group = document.createElement('div');
+    group.className = 'modal__option-group';
+    group.dataset.option = 'color';
+    group.innerHTML = `
+      <p class="modal__option-label">Color</p>
+      <div class="modal__option-buttons">
+        ${colors.map(c => `<button class="size-tag" type="button" data-value="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('')}
+      </div>
+    `;
+    variantSection.appendChild(group);
+  }
+
+  if (sizes.length > 1) {
+    const group = document.createElement('div');
+    group.className = 'modal__option-group';
+    group.dataset.option = 'size';
+    group.innerHTML = `
+      <p class="modal__option-label">Size</p>
+      <div class="modal__option-buttons size-grid">
+        ${sizes.map(s => `<button class="size-tag" type="button" data-value="${escapeAttr(s)}">${escapeHtml(s)}</button>`).join('')}
+      </div>
+    `;
+    variantSection.appendChild(group);
+  }
+
+  // If product has only colors (no sizes) or only sizes (no colors), the single-axis picker is enough.
+  // If neither colors nor sizes are distinct (rare, malformed data), fall back to listing every variant by label.
+  if (colors.length <= 1 && sizes.length <= 1 && product.variants.length > 1) {
+    const group = document.createElement('div');
+    group.className = 'modal__option-group';
+    group.dataset.option = 'variant';
+    group.innerHTML = `
+      <p class="modal__option-label">Choose Variant</p>
+      <div class="modal__option-buttons">
+        ${product.variants.map(v => `<button class="size-tag" type="button" data-variant-id="${v.id}">${escapeHtml(v.label)}</button>`).join('')}
+      </div>
+    `;
+    variantSection.appendChild(group);
+  }
+
+  if (selectedVariantInput) selectedVariantInput.value = '';
+  if (buyBtn) buyBtn.disabled = true;
+}
+
+function getSelectedOption(option: 'color' | 'size'): string | null {
+  const group = variantSection?.querySelector(`.modal__option-group[data-option="${option}"]`);
+  if (!group) return null;
+  const active = group.querySelector('.size-tag.selected') as HTMLElement | null;
+  return active?.dataset.value || null;
+}
+
+function updateSelectedVariant() {
+  if (!activeProduct || !selectedVariantInput || !buyBtn) return;
+
+  // Direct variant pick (single-axis fallback)
+  const directGroup = variantSection?.querySelector('.modal__option-group[data-option="variant"]');
+  if (directGroup) {
+    const active = directGroup.querySelector('.size-tag.selected') as HTMLElement | null;
+    const id = active?.dataset.variantId;
+    selectedVariantInput.value = id || '';
+    buyBtn.disabled = !id;
+    return;
+  }
+
+  const colors = uniqueOptions(activeProduct.variants, 'color');
+  const sizes = uniqueOptions(activeProduct.variants, 'size');
+  const needColor = colors.length > 1;
+  const needSize = sizes.length > 1;
+
+  const color = needColor ? getSelectedOption('color') : (colors[0] || null);
+  const size = needSize ? getSelectedOption('size') : (sizes[0] || null);
+
+  if ((needColor && !color) || (needSize && !size)) {
+    selectedVariantInput.value = '';
+    buyBtn.disabled = true;
+    return;
+  }
+
+  const match = findMatchingVariant(activeProduct, color, size);
+  if (!match) {
+    selectedVariantInput.value = '';
+    buyBtn.disabled = true;
+    if (modalMsg) modalMsg.textContent = 'That combination is unavailable.';
+    return;
+  }
+
+  selectedVariantInput.value = String(match.id);
+  buyBtn.disabled = false;
+  if (modalMsg) modalMsg.textContent = '';
+
+  // Update price + image to selected variant
+  const priceEl = document.getElementById('modal-product-price');
+  if (priceEl) priceEl.textContent = `$${match.price.toFixed(2)}`;
+  if (match.image) {
+    const img = document.getElementById('modal-product-img') as HTMLImageElement | null;
+    if (img) img.src = match.image;
+  }
+}
 
 export function openCheckoutModal(product: Product) {
   if (!checkoutModal) return;
-  
+  activeProduct = product;
+
   const img = document.getElementById('modal-product-img') as HTMLImageElement;
   const title = document.getElementById('modal-product-name');
   const price = document.getElementById('modal-product-price');
-  const idInput = document.getElementById('modal-product-id') as HTMLInputElement;
 
   if (img) { img.src = product.image; img.alt = product.title; }
   if (title) title.textContent = product.title;
-  if (price) price.textContent = `$${product.price.toFixed(2)}`;
-  if (idInput) idInput.value = String(product.id);
-
-  // Reset size selection
-  if (modalSizeGrid) {
-    modalSizeGrid.querySelectorAll('.size-tag').forEach(t => t.classList.remove('selected'));
+  if (price) {
+    price.textContent = product.min_price === product.max_price
+      ? `$${product.min_price.toFixed(2)}`
+      : `From $${product.min_price.toFixed(2)}`;
   }
-  if (modalSelSize) modalSelSize.value = '';
-  if (modalSubmitBtn) modalSubmitBtn.disabled = true;
+  if (productIdInput) productIdInput.value = String(product.id);
+  if (qtyInput) qtyInput.value = '1';
+  if (modalMsg) modalMsg.textContent = '';
 
+  renderVariantPicker(product);
   populateUpsell(product.id);
 
   checkoutModal.removeAttribute('hidden');
   document.body.style.overflow = 'hidden';
-  
+
   setTimeout(() => {
     document.getElementById('modal-close')?.focus();
   }, 100);
@@ -44,11 +182,12 @@ export function closeCheckoutModal() {
   if (!checkoutModal) return;
   checkoutModal.setAttribute('hidden', '');
   document.body.style.overflow = '';
+  activeProduct = null;
 }
 
 function populateUpsell(currentId: number) {
   if (!modalUpsell || !modalUpsellGrid) return;
-  
+
   const candidates = [
     ...(allProducts.tshirts || []),
     ...(allProducts.tanks || []),
@@ -63,68 +202,83 @@ function populateUpsell(currentId: number) {
   modalUpsell.hidden = false;
   modalUpsellGrid.innerHTML = candidates.map(p => `
     <div class="upsell-item" tabindex="0" role="button" data-id="${p.id}">
-      <img src="${p.image}" alt="${escapeAttr(p.title)}" loading="lazy" width="80" height="80" />
+      <img src="${escapeAttr(p.image)}" alt="${escapeAttr(p.title)}" loading="lazy" width="80" height="80" />
       <span class="upsell-item__name">${escapeHtml(p.title)}</span>
-      <span class="upsell-item__price">$${p.price.toFixed(2)}</span>
+      <span class="upsell-item__price">$${p.min_price.toFixed(2)}</span>
     </div>
   `).join('');
 
   modalUpsellGrid.querySelectorAll('.upsell-item').forEach(item => {
     item.addEventListener('click', () => {
-        const id = parseInt((item as HTMLElement).dataset.id!, 10);
-        const p = [...(allProducts.tshirts || []), ...(allProducts.tanks || []), ...(allProducts.hoodies || [])].find(x => x.id === id);
-        if (p) openCheckoutModal(p);
+      const id = parseInt((item as HTMLElement).dataset.id!, 10);
+      const p = [...(allProducts.tshirts || []), ...(allProducts.tanks || []), ...(allProducts.hoodies || [])].find(x => x.id === id);
+      if (p) openCheckoutModal(p);
     });
   });
 }
 
-// Global modal event listeners
 export function initModalListeners() {
-    document.getElementById('modal-backdrop')?.addEventListener('click', closeCheckoutModal);
-    document.getElementById('modal-close')?.addEventListener('click', closeCheckoutModal);
-    
-    if (modalSizeGrid) {
-        modalSizeGrid.addEventListener('click', (e) => {
-            const tag = (e.target as HTMLElement).closest('.size-tag') as HTMLElement;
-            if (!tag) return;
-            modalSizeGrid.querySelectorAll('.size-tag').forEach(t => t.classList.remove('selected'));
-            tag.classList.add('selected');
-            if (modalSelSize) modalSelSize.value = tag.dataset.size!;
-            if (modalSubmitBtn) modalSubmitBtn.disabled = false;
-        });
+  document.getElementById('modal-backdrop')?.addEventListener('click', closeCheckoutModal);
+  document.getElementById('modal-close')?.addEventListener('click', closeCheckoutModal);
+
+  // Delegate variant button clicks (color/size/direct-variant)
+  variantSection?.addEventListener('click', (e) => {
+    const tag = (e.target as HTMLElement).closest('.size-tag') as HTMLElement | null;
+    if (!tag) return;
+    const group = tag.closest('.modal__option-group');
+    if (!group) return;
+    group.querySelectorAll('.size-tag').forEach(t => t.classList.remove('selected'));
+    tag.classList.add('selected');
+    updateSelectedVariant();
+  });
+
+  // Order success/cancel toast based on URL params (Stripe redirect targets)
+  const params = new URLSearchParams(window.location.search);
+  const orderStatus = params.get('order');
+  if (orderStatus === 'success') {
+    showToast('Order placed! Check your email for the receipt.', 'success');
+    history.replaceState(null, '', window.location.pathname);
+  } else if (orderStatus === 'canceled') {
+    showToast('Checkout canceled. Your cart is empty.', 'error');
+    history.replaceState(null, '', window.location.pathname);
+  }
+
+  buyBtn?.addEventListener('click', async () => {
+    const variantId = selectedVariantInput?.value;
+    const quantity = parseInt(qtyInput?.value || '1', 10) || 1;
+    if (!variantId) {
+      if (modalMsg) modalMsg.textContent = 'Please select your options.';
+      return;
     }
 
-    modalSubmitBtn?.addEventListener('click', async () => {
-        const name = (document.getElementById('modal-name') as HTMLInputElement)?.value.trim();
-        const email = (document.getElementById('modal-email') as HTMLInputElement)?.value.trim();
-        const size = modalSelSize?.value;
-        const productId = (document.getElementById('modal-product-id') as HTMLInputElement)?.value;
+    buyBtn.disabled = true;
+    const originalText = buyBtn.textContent;
+    buyBtn.textContent = 'Loading checkout…';
 
-        if (!name || !email || !size || !productId) return;
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sync_variant_id: parseInt(variantId, 10),
+          quantity,
+        }),
+      });
 
-        const product = [...(allProducts.tshirts || []), ...(allProducts.tanks || []), ...(allProducts.hoodies || [])].find(p => String(p.id) === String(productId));
-        if (!product || !product.lemonsqueezy_url) {
-            showToast('Checkout currently unavailable.', 'error');
-            return;
-        }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || data.error || `HTTP ${res.status}`);
+      }
 
-        modalSubmitBtn.disabled = true;
-        modalSubmitBtn.textContent = 'Redirecting...';
-
-        try {
-            await submitSubscribe({ 
-                name, email, size, 
-                product_id: String(productId), 
-                product_name: product.title, 
-                source: 'modal_checkout' 
-            });
-        } catch (err) {
-            console.warn('[checkout] Lead capture failed:', err);
-        }
-
-        const checkoutUrl = new URL(product.lemonsqueezy_url);
-        checkoutUrl.searchParams.set('checkout[email]', email);
-        checkoutUrl.searchParams.set('checkout[name]', name);
-        window.location.href = checkoutUrl.toString();
-    });
+      const { url } = await res.json();
+      if (!url) throw new Error('No checkout URL returned');
+      window.location.href = url;
+    } catch (err: any) {
+      console.error('[checkout]', err);
+      showToast('Checkout unavailable right now. Please try again.', 'error');
+      buyBtn.disabled = false;
+      buyBtn.textContent = originalText;
+      if (modalMsg) modalMsg.textContent = 'Could not start checkout. Try again in a moment.';
+    }
+  });
 }

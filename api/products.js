@@ -1,20 +1,14 @@
 // api/products.js
-// Vercel serverless function — proxies Printful API, returns classified products.
-// Upgraded to Institutional Grade: Robust retries, structured logging, and type safety.
-
-import fs from 'fs/promises';
-import path from 'path';
+// Vercel serverless function — proxies Printful API, returns classified products
+// with full per-variant detail so the storefront can render a variant picker.
 
 const PRINTFUL_BASE = 'https://api.printful.com';
 const MAX_RETRIES = 3;
 
-/**
- * Robust fetcher with exponential backoff for rate limiting (429).
- */
 async function fetchWithRetry(url, options, retries = 0) {
   try {
     const res = await fetch(url, options);
-    
+
     if (res.status === 429 && retries < MAX_RETRIES) {
       const delay = Math.pow(2, retries) * 1000;
       console.warn(`[api/products] Rate limited (429). Retrying in ${delay}ms... (Attempt ${retries + 1}/${MAX_RETRIES})`);
@@ -38,35 +32,18 @@ async function fetchWithRetry(url, options, retries = 0) {
   }
 }
 
-/**
- * Build Printful request headers from env vars.
- */
 function pfHeaders(apiKey, storeId) {
-  return {
+  const headers = {
     Authorization: `Bearer ${apiKey}`,
-    'X-PF-Store-Id': String(storeId),
-    'User-Agent': 'BottomLineApparel/2.1 (Institutional Grade)',
+    'User-Agent': 'BottomLineApparel/3.0',
     'Content-Type': 'application/json',
   };
+  if (storeId) headers['X-PF-Store-Id'] = String(storeId);
+  return headers;
 }
 
-/**
- * Find lowest retail price among enabled sync variants.
- */
-function lowestPrice(syncVariants) {
-  const enabled = (syncVariants || []).filter(v => v.is_enabled !== false);
-  if (!enabled.length) return null;
-  const prices = enabled
-    .map(v => parseFloat(v.retail_price))
-    .filter(p => !isNaN(p) && p > 0);
-  return prices.length ? Math.min(...prices) : null;
-}
-
-/**
- * Extract the best preview image URL from sync_variants files.
- */
-function bestImage(syncProduct, syncVariants) {
-  const enabled = (syncVariants || []).filter(v => v.is_enabled !== false);
+function bestProductImage(syncProduct, syncVariants) {
+  const enabled = (syncVariants || []).filter(v => v.is_enabled !== false && !v.is_ignored);
   for (const variant of enabled) {
     const preview = (variant.files || []).find(f => f.type === 'preview');
     if (preview && preview.preview_url) return preview.preview_url;
@@ -74,9 +51,12 @@ function bestImage(syncProduct, syncVariants) {
   return syncProduct.thumbnail_url || null;
 }
 
-/**
- * Strip HTML tags and return only the first sentence of text.
- */
+function variantImage(variant) {
+  const preview = (variant.files || []).find(f => f.type === 'preview');
+  if (preview && preview.preview_url) return preview.preview_url;
+  return variant.product?.image || null;
+}
+
 function extractShortDescription(html) {
   if (!html) return '';
   const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -84,49 +64,84 @@ function extractShortDescription(html) {
   return match ? match[0].trim() : text.slice(0, 120);
 }
 
-/**
- * Classify a sync product into specific categories based on name keywords.
- */
 function classify(name) {
   const lower = (name || '').toLowerCase();
   const rules = [
+    { keywords: ['crop hoodie'], category: 'hoodies' },
+    { keywords: ['crop top', 'crop tee'], category: 'cropTops' },
+    { keywords: ['sweatpant', 'jogger', 'pant'], category: 'bottoms' },
     { keywords: ['hoodie', 'sweat', 'zip'], category: 'hoodies' },
     { keywords: ['tank'], category: 'tanks' },
-    { keywords: ['tee', 't-shirt', 'shirt'], category: 'tshirts' },
     { keywords: ['phone', 'case'], category: 'phoneCases' },
+    { keywords: ['hat', 'cap', 'beanie'], category: 'headwear' },
+    { keywords: ['shoe', 'slide', 'sneaker'], category: 'footwear' },
+    { keywords: ['tee', 't-shirt', 'shirt'], category: 'tshirts' },
   ];
-
   for (const rule of rules) {
-    if (rule.keywords.some(k => lower.includes(k))) {
-      return rule.category;
-    }
+    if (rule.keywords.some(k => lower.includes(k))) return rule.category;
   }
   return 'accessories';
 }
 
-/**
- * Shape a Printful sync product into clean API response shape.
- */
-function shapeProduct(syncProduct, syncVariants, productMapping = []) {
-  const price = lowestPrice(syncVariants);
-  const image = bestImage(syncProduct, syncVariants);
+const SIZE_TOKENS = new Set([
+  'xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', '2xl', '3xl', '4xl', '5xl',
+  'one size', 'os',
+]);
 
-  // Inject Lemon Squeezy URL from mapping if exists
-  let lemonsqueezy_url = null;
-  const productMap = productMapping.find(p => String(p.id) === String(syncProduct.id));
-  if (productMap) {
-    lemonsqueezy_url = productMap.lemonsqueezy_url;
+// Parse a variant label like "Black / S" or "iPhone 14 / Glossy" or just "Black".
+// Heuristic: split on " / ". If 2 parts and one looks like a size token, that's the size.
+// Otherwise treat the first as color and second as size by convention.
+function parseVariantLabel(label) {
+  if (!label) return { color: null, size: null };
+  const parts = label.split('/').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 1) {
+    const lower = parts[0].toLowerCase();
+    if (SIZE_TOKENS.has(lower)) return { color: null, size: parts[0] };
+    return { color: parts[0], size: null };
   }
+  // 2+ parts: detect which is the size
+  const sizeIdx = parts.findIndex(p => SIZE_TOKENS.has(p.toLowerCase()));
+  if (sizeIdx >= 0) {
+    const size = parts[sizeIdx];
+    const color = parts.filter((_, i) => i !== sizeIdx).join(' / ') || null;
+    return { color, size };
+  }
+  // Convention: "Color / Size" — last part is size
+  return { color: parts.slice(0, -1).join(' / '), size: parts[parts.length - 1] };
+}
 
+function shapeVariant(syncVariant) {
+  const price = parseFloat(syncVariant.retail_price);
+  const label = syncVariant.product?.name || syncVariant.name || '';
+  const { color, size } = parseVariantLabel(label);
+  return {
+    id: syncVariant.id, // sync_variant_id — what /api/checkout takes
+    label,
+    color,
+    size,
+    price: Number.isFinite(price) ? price : null,
+    image: variantImage(syncVariant),
+    sku: syncVariant.sku || null,
+  };
+}
+
+function shapeProduct(syncProduct, syncVariants) {
+  const enabled = (syncVariants || []).filter(v => v.is_enabled !== false && !v.is_ignored);
+  if (!enabled.length) return null;
+
+  const variants = enabled.map(shapeVariant).filter(v => v.price !== null);
+  if (!variants.length) return null;
+
+  const prices = variants.map(v => v.price);
   return {
     id: syncProduct.id,
     title: syncProduct.name,
     short_description: extractShortDescription(syncProduct.description || ''),
-    price,
-    image,
-    tiktok_url: null,
-    lemonsqueezy_url,
+    min_price: Math.min(...prices),
+    max_price: Math.max(...prices),
+    image: bestProductImage(syncProduct, syncVariants),
     category: classify(syncProduct.name),
+    variants,
   };
 }
 
@@ -134,32 +149,21 @@ export default async function handler(req, res) {
   const apiKey = process.env.PRINTFUL_API_KEY;
   const storeId = process.env.PRINTFUL_STORE_ID;
 
-  if (!apiKey || !storeId) {
-    console.error('[api/products] Configuration missing: PRINTFUL_API_KEY or PRINTFUL_STORE_ID');
+  if (!apiKey) {
+    console.error('[api/products] Configuration missing: PRINTFUL_API_KEY');
     return res.status(503).json({
       error: 'configuration_missing',
       message: 'Server is not configured with Printful credentials.',
     });
   }
 
-  // Load product mapping with fallback
-  let productMapping = [];
-  try {
-    const mappingPath = path.join(process.cwd(), 'product_mapping.json');
-    const mappingData = await fs.readFile(mappingPath, 'utf8');
-    const mapping = JSON.parse(mappingData);
-    productMapping = mapping.products || [];
-  } catch (err) {
-    console.warn('[api/products] Mapping read failed (using empty fallback):', err.message);
-  }
-
   const headers = pfHeaders(apiKey, storeId);
 
-  // Step 1: Fetch the list of all sync products
   let productList;
   try {
     const listData = await fetchWithRetry(`${PRINTFUL_BASE}/sync/products?limit=100`, { headers });
     productList = listData.result || [];
+    console.log(`[api/products] Printful: ${productList.length} sync products.`);
   } catch (err) {
     console.error('[api/products] Product list fetch failed:', err.message);
     return res.status(502).json({
@@ -169,17 +173,18 @@ export default async function handler(req, res) {
     });
   }
 
+  const empty = { tshirts: [], cropTops: [], tanks: [], hoodies: [], bottoms: [], phoneCases: [], headwear: [], footwear: [], accessories: [] };
   if (!productList.length) {
     res.setHeader('Cache-Control', 's-maxage=60');
-    return res.status(200).json({ tshirts: [], tanks: [], hoodies: [], phoneCases: [], accessories: [] });
+    return res.status(200).json(empty);
   }
 
-  // Step 2: Fetch detailed info for products in parallel chunks
+  // Fetch detailed sync_variants for each product, in parallel chunks
   let detailedProducts = [];
-  const CHUNK_SIZE = 4; // reduced chunk size for better stability
+  const CHUNK_SIZE = 4;
   for (let i = 0; i < productList.length; i += CHUNK_SIZE) {
     const chunk = productList.slice(i, i + CHUNK_SIZE);
-    const detailPromises = chunk.map(p => 
+    const detailPromises = chunk.map(p =>
       fetchWithRetry(`${PRINTFUL_BASE}/sync/products/${p.id}`, { headers })
         .then(d => d.result)
         .catch(err => {
@@ -191,25 +196,15 @@ export default async function handler(req, res) {
     detailedProducts.push(...results.filter(Boolean));
   }
 
-  // Step 3: Shape and classify
-  const grouped = {
-    tshirts: [],
-    tanks: [],
-    hoodies: [],
-    phoneCases: [],
-    accessories: []
-  };
+  const grouped = { ...empty };
 
   for (const detail of detailedProducts) {
     if (!detail || !detail.sync_product) continue;
-    const shaped = shapeProduct(detail.sync_product, detail.sync_variants, productMapping);
-    
-    // Institutional Grade: Skip items with no price or missing critical info
-    if (!shaped || shaped.price === null || !shaped.image) {
-      console.warn(`[api/products] Skipping product ${detail.sync_product.id}: missing price/image`);
+    const shaped = shapeProduct(detail.sync_product, detail.sync_variants);
+    if (!shaped || !shaped.image) {
+      console.warn(`[api/products] Skipping product ${detail.sync_product.id}: no shaped output or missing image`);
       continue;
     }
-
     if (grouped[shaped.category]) {
       grouped[shaped.category].push(shaped);
     } else {
@@ -217,7 +212,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // Performance: Institutional grade caching headers
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
   return res.status(200).json(grouped);
 }

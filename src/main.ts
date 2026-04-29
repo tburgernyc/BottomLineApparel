@@ -11,10 +11,9 @@ import { initUGCTicker } from './interactions/ticker';
 import { initScrollInteractions } from './interactions/scroll';
 import { initVideoAutoplay } from './interactions/video';
 import { loadProducts } from './api/products';
-import { showToast } from './ui/toast';
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // Core Infrastructure
     initNavigation();
     initModalListeners();
@@ -33,26 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const footerYear = document.getElementById('footer-year');
     if (footerYear) footerYear.textContent = String(new Date().getFullYear());
 
-    // Lemon Squeezy Bridge
-    (window as any).createLSCheckout = (url: string) => {
-        if ((window as any).LemonSqueezy) {
-            (window as any).LemonSqueezy.Url.Open(url);
-        } else {
-            window.open(url, '_blank');
-        }
-    };
-
-    if ((window as any).LemonSqueezy) {
-        (window as any).LemonSqueezy.Setup({
-            eventHandler: (data: any) => {
-                if (data.event === 'Checkout.Success') {
-                    showToast('Success! Your order is being drafted.', 'success');
-                }
-            }
-        });
-    }
-
-    console.log('%c Bottom Line Apparel %c Institutional Grade v2.1 ', 
-                'background: #ff0055; color: #fff; font-weight: bold;', 
+    console.log('%c Bottom Line Apparel %c v3.0 Stripe + Printful ',
+                'background: #ff0055; color: #fff; font-weight: bold;',
                 'background: #333; color: #fff;');
 });
