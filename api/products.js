@@ -61,9 +61,13 @@ function isPreferredColor(variant) {
 
 function getVariantFrontImage(variant) {
   const files = variant.files || [];
-  // Prefer 'front' type, then fall back to 'preview'
-  const front = files.find(f => f.type === 'front');
-  if (front && front.preview_url) return front.preview_url;
+  // Priority: front_large_dtf → any 'front*' type → 'default' → 'preview' (often the back)
+  const frontDtf = files.find(f => f.type === 'front_large_dtf');
+  if (frontDtf && frontDtf.preview_url) return frontDtf.preview_url;
+  const anyFront = files.find(f => f.type.startsWith('front'));
+  if (anyFront && anyFront.preview_url) return anyFront.preview_url;
+  const defaultFile = files.find(f => f.type === 'default');
+  if (defaultFile && defaultFile.preview_url) return defaultFile.preview_url;
   const preview = files.find(f => f.type === 'preview');
   if (preview && preview.preview_url) return preview.preview_url;
   return null;

@@ -193,9 +193,7 @@ export async function loadProducts() {
 
 function attachProductListeners() {
     document.querySelectorAll('.orbit-card, .product-card, .accessory-card').forEach(el => {
-        el.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
-            if (!target.closest('.btn')) return;
+        el.addEventListener('click', () => {
             const productId = (el as HTMLElement).dataset.productId;
             const product = findProductById(productId!);
             if (product) openCheckoutModal(product);
