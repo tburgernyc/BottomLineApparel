@@ -51,27 +51,27 @@ function renderVariantPicker(product: Product) {
     return;
   }
 
-  if (colors.length > 1) {
+  if (colors.length > 0) {
     const group = document.createElement('div');
     group.className = 'modal__option-group';
     group.dataset.option = 'color';
     group.innerHTML = `
       <p class="modal__option-label">Color</p>
       <div class="modal__option-buttons">
-        ${colors.map(c => `<button class="size-tag" type="button" data-value="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('')}
+        ${colors.map((c, i) => `<button class="size-tag ${i === 0 ? 'selected' : ''}" type="button" data-value="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('')}
       </div>
     `;
     variantSection.appendChild(group);
   }
 
-  if (sizes.length > 1) {
+  if (sizes.length > 0) {
     const group = document.createElement('div');
     group.className = 'modal__option-group';
     group.dataset.option = 'size';
     group.innerHTML = `
       <p class="modal__option-label">Size</p>
       <div class="modal__option-buttons size-grid">
-        ${sizes.map(s => `<button class="size-tag" type="button" data-value="${escapeAttr(s)}">${escapeHtml(s)}</button>`).join('')}
+        ${sizes.map((s, i) => `<button class="size-tag ${i === 0 ? 'selected' : ''}" type="button" data-value="${escapeAttr(s)}">${escapeHtml(s)}</button>`).join('')}
       </div>
     `;
     variantSection.appendChild(group);
@@ -79,7 +79,7 @@ function renderVariantPicker(product: Product) {
 
   // If product has only colors (no sizes) or only sizes (no colors), the single-axis picker is enough.
   // If neither colors nor sizes are distinct (rare, malformed data), fall back to listing every variant by label.
-  if (colors.length <= 1 && sizes.length <= 1 && product.variants.length > 1) {
+  if (colors.length === 0 && sizes.length === 0 && product.variants.length > 0) {
     const group = document.createElement('div');
     group.className = 'modal__option-group';
     group.dataset.option = 'variant';
@@ -118,11 +118,11 @@ function updateSelectedVariant() {
 
   const colors = uniqueOptions(activeProduct.variants, 'color');
   const sizes = uniqueOptions(activeProduct.variants, 'size');
-  const needColor = colors.length > 1;
-  const needSize = sizes.length > 1;
+  const needColor = colors.length > 0;
+  const needSize = sizes.length > 0;
 
-  const color = needColor ? getSelectedOption('color') : (colors[0] || null);
-  const size = needSize ? getSelectedOption('size') : (sizes[0] || null);
+  const color = needColor ? getSelectedOption('color') : null;
+  const size = needSize ? getSelectedOption('size') : null;
 
   if ((needColor && !color) || (needSize && !size)) {
     selectedVariantInput.value = '';
@@ -172,6 +172,7 @@ export function openCheckoutModal(product: Product) {
 
   renderVariantPicker(product);
   populateUpsell(product.id);
+  updateSelectedVariant();
 
   checkoutModal.removeAttribute('hidden');
   document.body.style.overflow = 'hidden';

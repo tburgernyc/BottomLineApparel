@@ -1195,13 +1195,20 @@ ul {
 }
 
 /* Orbit grid — looser spacing, accommodates 3D overflow */
-.orbit-grid {
+.orbit-grid, .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: var(--space-lg);
   perspective: 1200px;
   /* Extra padding to prevent card 3D overflow clipping */
   padding: var(--space-md) var(--space-xs);
+}
+
+@media (max-width: 600px) {
+  .orbit-grid, .products-grid {
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
+  }
 }
 
 /* ── Orbit Card: 3D Flip Architecture ──

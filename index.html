@@ -50,9 +50,7 @@
 </head>
 <body>
 
-  <!-- Skip to content — keyboard / screen reader navigation -->
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-
+  <!-- Skip to content removed as per user request -->
   <!-- Announcement / free-shipping bar (text updates dynamically based on cart subtotal) -->
   <div class="announcement-bar" id="announcement-bar" role="status" aria-live="polite">
     Free shipping on orders over $75 · 30-day returns
@@ -222,9 +220,10 @@
 
   <main id="main-content" tabindex="-1">
 
-    lass="section-rule" aria-hidden="true" />
-    <section class="tshirts-showcase" id="tshirts">
-      <div class="container">
+
+    <section class="tshirts-showcase" id="tshirts" style="position: relative; overflow: hidden; padding-top: 120px; padding-bottom: 80px;">
+      <video class="hero-video" src="video_part_1.mp4" autoplay loop muted playsinline aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; filter: brightness(0.5);"></video>
+      <div class="container" style="position: relative; z-index: 1;">
         <h1 class="hero-headline lux-title reveal">Your Ass Deserves<br />a Punchline.</h1>
         <p class="edition-label reveal">The Collection</p>
         <h2 class="section-title lux-title reveal" id="tshirts-title-heading">Statement Tees</h2>
@@ -364,7 +363,7 @@
     </section>
 
     <hr class="section-rule" aria-hidden="true" />
-lass="section-rule" aria-hidden="true" />
+
     <section class="countdown-section" id="countdown">
       <div class="container countdown-inner">
         <p class="edition-label reveal">Collection Window Closing</p>
@@ -391,7 +390,7 @@ lass="section-rule" aria-hidden="true" />
     </section>
 
     <hr class="section-rule" aria-hidden="true" />
-lass="section-rule" aria-hidden="true" />
+
     <section class="campaign-videos" id="campaign">
       <div class="container">
         <p class="edition-label reveal">The Energy</p>
@@ -538,7 +537,7 @@ lass="section-rule" aria-hidden="true" />
     </section>
 
     <hr class="section-rule" aria-hidden="true" />
-lass="section-rule" aria-hidden="true" />
+
     <section class="join" id="join">
       <div class="container">
         <p class="edition-label reveal" style="display:block; text-align:center;">The Inner Circle</p>
