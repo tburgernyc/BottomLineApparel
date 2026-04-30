@@ -53,6 +53,11 @@
   <!-- Skip to content — keyboard / screen reader navigation -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
+  <!-- Announcement / free-shipping bar (text updates dynamically based on cart subtotal) -->
+  <div class="announcement-bar" id="announcement-bar" role="status" aria-live="polite">
+    Free shipping on orders over $75 · 30-day returns
+  </div>
+
   <header class="site-header" id="site-header" role="banner">
     <div class="header-inner">
       <a href="#" class="logo" aria-label="Bottom Line Apparel Home">
@@ -64,13 +69,26 @@
       </a>
 
       <nav class="nav-links" id="nav-links" aria-label="Primary navigation">
+        <a href="#tshirts">Shop</a>
         <a href="#material">The Craft</a>
-        <a href="#tshirts">Collection</a>
         <a href="#story">Stories</a>
         <a href="#join">Join</a>
       </nav>
 
       <div class="header-actions">
+        <button type="button" class="header-icon-btn" id="search-toggle" aria-label="Search">
+          <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+        <button type="button" class="header-icon-btn" id="cart-toggle" aria-label="Open cart">
+          <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 7h12l-1.2 12.1a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 7z"></path>
+            <path d="M9 7V5a3 3 0 0 1 6 0v2"></path>
+          </svg>
+          <span class="cart-icon-count" id="cart-icon-count" hidden>0</span>
+        </button>
         <a href="#tshirts" class="btn btn--primary btn--sm header-cta" id="header-cta">Shop Now →</a>
         <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">
           <span class="hamburger"></span>
@@ -79,6 +97,15 @@
     </div>
   </header>
 
+  <!-- Search overlay (built once, populated by initSearch) -->
+  <div class="search-overlay" id="search-overlay" role="dialog" aria-modal="true" aria-label="Search products" hidden>
+    <button type="button" class="search-overlay__close" id="search-overlay-close" aria-label="Close search">×</button>
+    <div class="search-overlay__inner">
+      <input type="search" class="search-overlay__input" id="search-input" placeholder="Search tees, hoodies, accessories…" autocomplete="off" aria-label="Search products" />
+      <div class="search-overlay__results" id="search-results" role="listbox" aria-label="Search results"></div>
+    </div>
+  </div>
+
   <!-- ═══════════════════ SPLASH SCREEN ═══════════════════ -->
   <div class="splash" id="splash" aria-hidden="true">
     <div class="splash__inner">
@@ -86,8 +113,12 @@
     </div>
   </div>
 
-  <!-- Global looping video background -->
-  <video class="global-video-bg" src="video_4.mp4" autoplay loop muted playsinline aria-hidden="true"></video>
+  <!--
+    Global looping video background.
+    Deferred load: src is hydrated by initVideoAutoplay() after first paint
+    so it does not block LCP. preload="none" prevents byte fetch until then.
+  -->
+  <video class="global-video-bg" data-src="video_4.mp4" preload="none" loop muted playsinline aria-hidden="true"></video>
 
   <!-- ═══════════════════ STICKY CART BAR ═══════════════════ -->
   <div class="sticky-cart" id="sticky-cart" aria-label="Quick add to cart" role="complementary">
@@ -151,9 +182,9 @@
       <input type="hidden" id="modal-product-id" value="" />
       <input type="hidden" id="modal-selected-variant-id" value="" />
       <button type="button" class="btn btn--primary modal__submit" id="modal-buy-btn" disabled>
-        Buy Now →
+        Add to Bag
       </button>
-      <p class="modal__disclaimer">Secure checkout via Stripe. Fulfilled by Printful &amp; shipped to your door.</p>
+      <p class="modal__disclaimer">Secure checkout via Stripe. Fulfilled by Printful &amp; shipped to your door. Free shipping on orders over $75.</p>
       <p class="modal__msg" id="modal-msg" aria-live="polite"></p>
     </div>
   </div>
@@ -191,7 +222,86 @@
 
   <main id="main-content" tabindex="-1">
 
-    <!-- ═══════════════════ HARBOR HERO (PROMOTED) ═══════════════════ -->
+    lass="section-rule" aria-hidden="true" />
+    <section class="tshirts-showcase" id="tshirts">
+      <div class="container">
+        <h1 class="hero-headline lux-title reveal">Your Ass Deserves<br />a Punchline.</h1>
+        <p class="edition-label reveal">The Collection</p>
+        <h2 class="section-title lux-title reveal" id="tshirts-title-heading">Statement Tees</h2>
+        <p class="showcase-intro reveal">Four statements, zero subtlety. Each tee is a piece for the messiest — and best — version of you. Hover to explore. Click to size up.</p>
+        <div class="orbit-grid" id="tshirts-grid" aria-label="T-shirt products">
+          <!-- Orbit cards injected by script.js -->
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-rule" aria-hidden="true" />
+<!-- ═══════════════════ OTHER APPAREL ═══════════════════ -->
+    <section class="product-showcase" id="apparel">
+      <div class="container">
+        <p class="edition-label reveal">More Drops</p>
+        <h2 class="section-title reveal">Also in the Collection</h2>
+
+        <h3 class="subcategory-title" id="crop-tops-title" style="display:none;">Crop Tops</h3>
+        <div class="orbit-grid" id="crop-tops-grid" aria-label="Crop top products">
+          <!-- Crop tops injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="tanks-title" style="display:none;">Tank Tops</h3>
+        <div class="products-grid" id="tanks-grid">
+          <!-- Tanks injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="hoodies-title" style="display:none;">Hoodies</h3>
+        <div class="products-grid" id="hoodies-grid">
+          <!-- Hoodies injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="bottoms-title" style="display:none;">Bottoms</h3>
+        <div class="products-grid" id="bottoms-grid">
+          <!-- Bottoms injected here -->
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-rule" aria-hidden="true" />
+<!-- ═══════════════════ PHONE CASES ═══════════════════ -->
+    <section class="accessories-section" id="phone-cases">
+      <div class="container">
+        <p class="edition-label reveal">Accessories</p>
+        <h2 class="section-title reveal">Phone Cases</h2>
+        <div class="products-grid" id="phone-cases-grid">
+          <!-- Phone cases injected here -->
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-rule" aria-hidden="true" />
+<!-- ═══════════════════ LIFESTYLE & GOODS ═══════════════════ -->
+    <section class="accessories-section" id="lifestyle">
+      <div class="container">
+        <p class="edition-label reveal">More From the Drop</p>
+        <h2 class="section-title reveal">Lifestyle &amp; Goods</h2>
+
+        <h3 class="subcategory-title" id="headwear-title" style="display:none;">Headwear</h3>
+        <div class="products-grid" id="headwear-grid">
+          <!-- Headwear injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="footwear-title" style="display:none;">Footwear</h3>
+        <div class="products-grid" id="footwear-grid">
+          <!-- Footwear injected here -->
+        </div>
+
+        <h3 class="subcategory-title" id="accessories-title" style="display:none;">Lifestyle Goods</h3>
+        <div class="products-grid" id="accessories-grid">
+          <!-- Lifestyle goods injected here -->
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-rule" aria-hidden="true" />
+═══════════════════ HARBOR HERO (PROMOTED) ═══════════════════ -->
     <section class="material-story" id="material">
       <div class="container material-story__layout">
         <div class="material-story__content">
@@ -233,14 +343,18 @@
           </div>
         </div>
         <div class="material-story__visual">
-          <img
-            src="lifestyle-dock.jpg"
-            alt="Bottom Line Apparel lifestyle — men wearing statement tees at the waterfront"
-            loading="lazy"
-            width="600"
-            height="700"
-            class="material-depth-img"
-          />
+          <picture>
+            <source type="image/avif" srcset="optimized/lifestyle-dock.avif" />
+            <source type="image/webp" srcset="optimized/lifestyle-dock.webp" />
+            <img
+              src="lifestyle-dock.jpg"
+              alt="Bottom Line Apparel lifestyle — men wearing statement tees at the waterfront"
+              loading="lazy"
+              width="600"
+              height="700"
+              class="material-depth-img"
+            />
+          </picture>
           <div class="material-story__tag">
             <p class="edition-label">Premium Cotton</p>
             <p class="material-story__tag-text">Ring-Spun · Water-Based Ink</p>
@@ -249,21 +363,8 @@
       </div>
     </section>
 
-    <!-- ═══════════════════ T-SHIRTS (PRIMARY CONVERSION ZONE) ═══════════════════ -->
     <hr class="section-rule" aria-hidden="true" />
-    <section class="tshirts-showcase" id="tshirts">
-      <div class="container">
-        <p class="edition-label reveal">The Collection</p>
-        <h2 class="section-title lux-title reveal" id="tshirts-title-heading">Statement Tees</h2>
-        <p class="showcase-intro reveal">Four statements, zero subtlety. Each tee is a piece for the messiest — and best — version of you. Hover to explore. Click to size up.</p>
-        <div class="orbit-grid" id="tshirts-grid" aria-label="T-shirt products">
-          <!-- Orbit cards injected by script.js -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════ LIMITED DROP COUNTDOWN ═══════════════════ -->
-    <hr class="section-rule" aria-hidden="true" />
+lass="section-rule" aria-hidden="true" />
     <section class="countdown-section" id="countdown">
       <div class="container countdown-inner">
         <p class="edition-label reveal">Collection Window Closing</p>
@@ -289,8 +390,8 @@
       </div>
     </section>
 
-    <!-- ═══════════════════ CAMPAIGN VIDEOS ═══════════════════ -->
     <hr class="section-rule" aria-hidden="true" />
+lass="section-rule" aria-hidden="true" />
     <section class="campaign-videos" id="campaign">
       <div class="container">
         <p class="edition-label reveal">The Energy</p>
@@ -309,124 +410,21 @@
       </div>
     </section>
 
-    <!-- ═══════════════════ UGC / LOOKBOOK ═══════════════════ -->
     <hr class="section-rule" aria-hidden="true" />
     <section class="lookbook" id="lookbook">
       <div class="container">
         <p class="edition-label reveal">The Community</p>
         <h2 class="section-title reveal">Show Us Your Bottom Line</h2>
-        <p class="lookbook-intro reveal">Tag @bottomlineapparel in your fits and nights out — we feature our favorite clout chasers and vape queens on TikTok and Instagram. Whether you're on the Fire Island ferry, outside the club, or just scrolling from bed.</p>
-      </div>
-      <!-- Infinite ticker strip -->
-      <div class="ugc-ticker-wrap" aria-hidden="true">
-        <div class="ugc-ticker" id="ugc-ticker">
-          <!-- Set A -->
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder" role="img" aria-label="@chaotictwink wearing Bottom Line Apparel">📸</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@chaotictwink</p>
-              <p class="ugc-card__caption">"Push Out For Clout on the ferry. Absolutely unhinged." 🏝️</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder" role="img" aria-label="@vapelordnyc wearing Bottom Line Apparel">💨</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@vapelordnyc</p>
-              <p class="ugc-card__caption">"Gapin' and Vapin' is a personal attack and I love it." 💀</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder" role="img" aria-label="@fitpicpapi wearing Bottom Line Apparel">🔥</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@fitpicpapi</p>
-              <p class="ugc-card__caption">"Finally a brand that gets it. Wearing this to brunch and blaming the shirt." 🥂</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder" role="img" aria-label="@brunchbae wearing Bottom Line Apparel">✨</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@brunchbae</p>
-              <p class="ugc-card__caption">"Wore it on a date. Got a second date. Shirt did the work." 😮‍💨</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder" role="img" aria-label="@hellbentnyc wearing Bottom Line Apparel">🌈</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@hellbentnyc</p>
-              <p class="ugc-card__caption">"Walked past three staring strangers. Worth every penny." 👁️</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <!-- Set B (duplicate for seamless loop) -->
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder">📸</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@chaotictwink</p>
-              <p class="ugc-card__caption">"Push Out For Clout on the ferry. Absolutely unhinged." 🏝️</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder">💨</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@vapelordnyc</p>
-              <p class="ugc-card__caption">"Gapin' and Vapin' is a personal attack and I love it." 💀</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder">🔥</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@fitpicpapi</p>
-              <p class="ugc-card__caption">"Finally a brand that gets it. Wearing this to brunch." 🥂</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder">✨</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@brunchbae</p>
-              <p class="ugc-card__caption">"Wore it on a date. Got a second date. Shirt did the work." 😮‍💨</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
-          <div class="ugc-card">
-            <div class="ugc-card__img-wrap">
-              <div class="ugc-card__placeholder">🌈</div>
-            </div>
-            <div class="ugc-card__body">
-              <p class="ugc-card__user">@hellbentnyc</p>
-              <p class="ugc-card__caption">"Walked past three staring strangers. Worth every penny." 👁️</p>
-              <a href="#tshirts" class="ugc-card__cta">Tap to Shop →</a>
-            </div>
-          </div>
+        <p class="lookbook-intro reveal">Tag <a href="https://www.tiktok.com/@bottomlineapparel" target="_blank" rel="noopener">@bottomlineapparel</a> on TikTok or Instagram in your fits and nights out. We re-share our favorites every week.</p>
+        <div class="lookbook-cta-row reveal">
+          <a class="btn btn--secondary" href="https://www.tiktok.com/@bottomlineapparel" target="_blank" rel="noopener">Follow on TikTok</a>
+          <a class="btn btn--secondary" href="https://www.instagram.com/bottomlineapparel" target="_blank" rel="noopener">Follow on Instagram</a>
         </div>
       </div>
+      <!-- TODO[CONVERSION-HANDOFF]: Wire up real UGC pipeline (Foursixty, Tagshop, or Okendo) and replace this section with embedded posts tagged @bottomlineapparel. Do NOT re-add fabricated testimonials — FTC §255 risk. -->
     </section>
 
-    <!-- ═══════════════════ STORY ═══════════════════ -->
+<!-- ═══════════════════ STORY ═══════════════════ -->
     <section class="story" id="story">
       <div class="container story-grid">
         <div class="story-content">
@@ -442,40 +440,88 @@
           <div class="carousel-container">
             <div class="carousel-track" id="carousel-track">
               <div class="carousel-slide active" tabindex="0" role="button" aria-label="View community photo 1">
-                <img src="carousel-1.jpg" alt="Bottom Line Apparel community shot 1" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-1.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-1.webp" />
+                  <img src="carousel-1.jpg" alt="Bottom Line Apparel community shot 1" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 2">
-                <img src="carousel-2.jpg" alt="Bottom Line Apparel community shot 2" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-2.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-2.webp" />
+                  <img src="carousel-2.jpg" alt="Bottom Line Apparel community shot 2" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 3">
-                <img src="carousel-3.jpg" alt="Bottom Line Apparel community shot 3" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-3.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-3.webp" />
+                  <img src="carousel-3.jpg" alt="Bottom Line Apparel community shot 3" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 4">
-                <img src="carousel-4.jpg" alt="Bottom Line Apparel community shot 4" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-4.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-4.webp" />
+                  <img src="carousel-4.jpg" alt="Bottom Line Apparel community shot 4" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 5">
-                <img src="carousel-5.png" alt="Bottom Line Apparel community shot 5" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-5.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-5.webp" />
+                  <img src="carousel-5.png" alt="Bottom Line Apparel community shot 5" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 6">
-                <img src="carousel-6.png" alt="Bottom Line Apparel community shot 6" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-6.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-6.webp" />
+                  <img src="carousel-6.png" alt="Bottom Line Apparel community shot 6" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 7">
-                <img src="carousel-7.png" alt="Bottom Line Apparel community shot 7" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-7.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-7.webp" />
+                  <img src="carousel-7.png" alt="Bottom Line Apparel community shot 7" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 8">
-                <img src="carousel-8.png" alt="Bottom Line Apparel community shot 8" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-8.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-8.webp" />
+                  <img src="carousel-8.png" alt="Bottom Line Apparel community shot 8" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 9">
-                <img src="carousel-9.png" alt="Bottom Line Apparel community shot 9" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-9.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-9.webp" />
+                  <img src="carousel-9.png" alt="Bottom Line Apparel community shot 9" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 10">
-                <img src="carousel-10.png" alt="Bottom Line Apparel community shot 10" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-10.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-10.webp" />
+                  <img src="carousel-10.png" alt="Bottom Line Apparel community shot 10" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 11">
-                <img src="carousel-11.jpg" alt="Bottom Line Apparel community shot 11" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-11.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-11.webp" />
+                  <img src="carousel-11.jpg" alt="Bottom Line Apparel community shot 11" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
               <div class="carousel-slide" tabindex="0" role="button" aria-label="View community photo 12">
-                <img src="carousel-12.png" alt="Bottom Line Apparel community shot 12" loading="lazy" />
+                <picture>
+                  <source type="image/avif" srcset="optimized/carousel-12.avif" />
+                  <source type="image/webp" srcset="optimized/carousel-12.webp" />
+                  <img src="carousel-12.png" alt="Bottom Line Apparel community shot 12" loading="lazy" width="1200" height="1600" />
+                </picture>
               </div>
             </div>
             <div class="carousel-controls">
@@ -491,70 +537,8 @@
       </div>
     </section>
 
-    <!-- ═══════════════════ OTHER APPAREL ═══════════════════ -->
-    <section class="product-showcase" id="apparel">
-      <div class="container">
-        <p class="edition-label reveal">More Drops</p>
-        <h2 class="section-title reveal">Also in the Collection</h2>
-
-        <h3 class="subcategory-title" id="crop-tops-title" style="display:none;">Crop Tops</h3>
-        <div class="orbit-grid" id="crop-tops-grid" aria-label="Crop top products">
-          <!-- Crop tops injected here -->
-        </div>
-
-        <h3 class="subcategory-title" id="tanks-title" style="display:none;">Tank Tops</h3>
-        <div class="products-grid" id="tanks-grid">
-          <!-- Tanks injected here -->
-        </div>
-
-        <h3 class="subcategory-title" id="hoodies-title" style="display:none;">Hoodies</h3>
-        <div class="products-grid" id="hoodies-grid">
-          <!-- Hoodies injected here -->
-        </div>
-
-        <h3 class="subcategory-title" id="bottoms-title" style="display:none;">Bottoms</h3>
-        <div class="products-grid" id="bottoms-grid">
-          <!-- Bottoms injected here -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════ PHONE CASES ═══════════════════ -->
-    <section class="accessories-section" id="phone-cases">
-      <div class="container">
-        <p class="edition-label reveal">Accessories</p>
-        <h2 class="section-title reveal">Phone Cases</h2>
-        <div class="products-grid" id="phone-cases-grid">
-          <!-- Phone cases injected here -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════ LIFESTYLE & GOODS ═══════════════════ -->
-    <section class="accessories-section" id="lifestyle">
-      <div class="container">
-        <p class="edition-label reveal">More From the Drop</p>
-        <h2 class="section-title reveal">Lifestyle &amp; Goods</h2>
-
-        <h3 class="subcategory-title" id="headwear-title" style="display:none;">Headwear</h3>
-        <div class="products-grid" id="headwear-grid">
-          <!-- Headwear injected here -->
-        </div>
-
-        <h3 class="subcategory-title" id="footwear-title" style="display:none;">Footwear</h3>
-        <div class="products-grid" id="footwear-grid">
-          <!-- Footwear injected here -->
-        </div>
-
-        <h3 class="subcategory-title" id="accessories-title" style="display:none;">Lifestyle Goods</h3>
-        <div class="products-grid" id="accessories-grid">
-          <!-- Lifestyle goods injected here -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════ JOIN / INNER CIRCLE ═══════════════════ -->
     <hr class="section-rule" aria-hidden="true" />
+lass="section-rule" aria-hidden="true" />
     <section class="join" id="join">
       <div class="container">
         <p class="edition-label reveal" style="display:block; text-align:center;">The Inner Circle</p>
@@ -571,7 +555,7 @@
       </div>
     </section>
 
-  </main>
+</main>
 
   <!-- ═══════════════════ FOOTER ═══════════════════ -->
   <footer class="site-footer">
@@ -660,13 +644,22 @@
     </div>
   </div>
 
-  <!-- Analytics pixel config — IDs are public (not secrets).
-       Replace placeholder values with your real IDs before deploying.
-       These are only loaded after cookie consent is granted. -->
+  <!--
+    Analytics pixel config. IDs are public (not secrets).
+
+    TODO[CONVERSION-HANDOFF]: Paste your real IDs below.
+      - GA4:    https://analytics.google.com → Admin → Data Streams → Measurement ID (G-XXXXX)
+      - Meta:   https://business.facebook.com → Events Manager → Pixel ID (numeric)
+      - TikTok: https://ads.tiktok.com → Assets → Events → Pixel ID
+
+    SDKs only load after the user grants cookie consent. While IDs are left
+    as placeholders ('G-XXXXXXXXXX' or '') the analytics module no-ops, so
+    no ghost events fire in dev/staging.
+  -->
   <script>
-    window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // Replace with real GA4 Measurement ID
-    window.BLA_TTQ_ID       = '';               // Replace with TikTok Pixel ID, or leave blank
-    window.BLA_META_ID      = '';               // Replace with Meta Pixel ID, or leave blank
+    window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // GA4 Measurement ID
+    window.BLA_TTQ_ID       = '';               // TikTok Pixel ID (or leave blank)
+    window.BLA_META_ID      = '';               // Meta Pixel ID (or leave blank)
   </script>
 
   <script type="module" src="/src/main.ts"></script>

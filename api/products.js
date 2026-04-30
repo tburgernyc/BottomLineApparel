@@ -4,10 +4,15 @@
 
 const PRINTFUL_BASE = 'https://api.printful.com';
 const MAX_RETRIES = 3;
+const PRINTFUL_FETCH_TIMEOUT_MS = 8000;
+const SYNC_PRODUCTS_PAGE_SIZE = 100;
 
 async function fetchWithRetry(url, options, retries = 0) {
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, {
+      ...options,
+      signal: AbortSignal.timeout(PRINTFUL_FETCH_TIMEOUT_MS),
+    });
 
     if (res.status === 429 && retries < MAX_RETRIES) {
       const delay = Math.pow(2, retries) * 1000;
@@ -30,6 +35,20 @@ async function fetchWithRetry(url, options, retries = 0) {
     }
     throw err;
   }
+}
+
+async function fetchAllSyncProducts(headers) {
+  const all = [];
+  let offset = 0;
+  while (true) {
+    const url = `${PRINTFUL_BASE}/sync/products?limit=${SYNC_PRODUCTS_PAGE_SIZE}&offset=${offset}`;
+    const data = await fetchWithRetry(url, { headers });
+    const page = data.result || [];
+    all.push(...page);
+    if (page.length < SYNC_PRODUCTS_PAGE_SIZE) break;
+    offset += SYNC_PRODUCTS_PAGE_SIZE;
+  }
+  return all;
 }
 
 function pfHeaders(apiKey, storeId) {
@@ -253,8 +272,7 @@ export default async function handler(req, res) {
 
   let productList;
   try {
-    const listData = await fetchWithRetry(`${PRINTFUL_BASE}/sync/products?limit=100`, { headers });
-    productList = listData.result || [];
+    productList = await fetchAllSyncProducts(headers);
     console.log(`[api/products] Printful: ${productList.length} sync products.`);
   } catch (err) {
     console.error('[api/products] Product list fetch failed:', err.message);

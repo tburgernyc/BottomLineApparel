@@ -1,6 +1,9 @@
 import { Product, Variant, allProducts } from '../api/products';
 import { escapeHtml, escapeAttr } from '../utils/helpers';
 import { showToast } from './toast';
+import { addItem } from '../cart/state';
+import { openCartDrawer } from './cart-drawer';
+import { track } from '../analytics/analytics';
 
 const checkoutModal = document.getElementById('checkout-modal');
 const variantSection = document.getElementById('modal-variant-section');
@@ -173,6 +176,15 @@ export function openCheckoutModal(product: Product) {
   checkoutModal.removeAttribute('hidden');
   document.body.style.overflow = 'hidden';
 
+  track.viewItem({
+    item_id: String(product.id),
+    item_name: product.title,
+    item_brand: 'Bottom Line Apparel',
+    item_category: product.category,
+    price: product.min_price,
+    quantity: 1,
+  });
+
   setTimeout(() => {
     document.getElementById('modal-close')?.focus();
   }, 100);
@@ -243,42 +255,42 @@ export function initModalListeners() {
     history.replaceState(null, '', window.location.pathname);
   }
 
-  buyBtn?.addEventListener('click', async () => {
+  buyBtn?.addEventListener('click', () => {
     const variantId = selectedVariantInput?.value;
     const quantity = parseInt(qtyInput?.value || '1', 10) || 1;
-    if (!variantId) {
+    if (!variantId || !activeProduct) {
       if (modalMsg) modalMsg.textContent = 'Please select your options.';
       return;
     }
-
-    buyBtn.disabled = true;
-    const originalText = buyBtn.textContent;
-    buyBtn.textContent = 'Loading checkout…';
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sync_variant_id: parseInt(variantId, 10),
-          quantity,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || data.error || `HTTP ${res.status}`);
-      }
-
-      const { url } = await res.json();
-      if (!url) throw new Error('No checkout URL returned');
-      window.location.href = url;
-    } catch (err: any) {
-      console.error('[checkout]', err);
-      showToast('Checkout unavailable right now. Please try again.', 'error');
-      buyBtn.disabled = false;
-      buyBtn.textContent = originalText;
-      if (modalMsg) modalMsg.textContent = 'Could not start checkout. Try again in a moment.';
+    const variant = activeProduct.variants.find(v => String(v.id) === variantId);
+    if (!variant) {
+      if (modalMsg) modalMsg.textContent = 'That variant is unavailable.';
+      return;
     }
+
+    const variantLabel = [variant.color, variant.size].filter(Boolean).join(' / ');
+
+    addItem({
+      sync_variant_id: variant.id,
+      product_id: activeProduct.id,
+      title: activeProduct.title,
+      variant_label: variantLabel,
+      image: variant.image || activeProduct.image,
+      price: variant.price,
+      quantity,
+    });
+
+    track.addToCart({
+      item_id: String(variant.id),
+      item_name: activeProduct.title,
+      item_brand: 'Bottom Line Apparel',
+      item_variant: variantLabel,
+      price: variant.price,
+      quantity,
+    });
+
+    showToast(`Added to bag: ${activeProduct.title}${variantLabel ? ` (${variantLabel})` : ''}`, 'success');
+    closeCheckoutModal();
+    openCartDrawer();
   });
 }

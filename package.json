@@ -12,17 +12,19 @@
     "preview": "vite preview",
     "api:dev": "vercel dev",
     "lint": "eslint src --ext .ts,.js",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "optimize:images": "node scripts/optimize-images.mjs"
   },
   "dependencies": {
+    "fuse.js": "^7.3.0",
     "stripe": "^17.0.0"
   },
   "devDependencies": {
-    "vite": "^5.2.0",
-    "typescript": "^5.4.0",
+    "dotenv": "^16.4.5",
     "eslint": "^9.0.0",
     "prettier": "^3.2.0",
-    "dotenv": "^16.4.5"
+    "sharp": "^0.33.5",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
   }
 }
-

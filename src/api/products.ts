@@ -1,6 +1,7 @@
 import { escapeHtml, escapeAttr } from '../utils/helpers';
 import { openCheckoutModal } from '../ui/modals';
 import { observeNewReveals } from '../interactions/scroll';
+import { track } from '../analytics/analytics';
 
 export interface Variant {
     id: number;
@@ -25,21 +26,6 @@ export interface Product {
 
 export let allProducts: Record<string, Product[]> = {};
 
-/**
- * Institutional Grade simulated scarcity logic.
- */
-function getScarcityCount() {
-  const r = Math.random();
-  if (r < 0.12) return Math.floor(Math.random() * 2) + 1; // 1-2
-  if (r < 0.30) return Math.floor(Math.random() * 2) + 3; // 3-4
-  return null;
-}
-
-const SCARCITY_MESSAGES = (n: number) =>
-  n <= 2 ? `Only ${n} left` :
-  n <= 4 ? `${n} left` :
-  null;
-
 function priceDisplay(p: Product) {
   if (p.min_price === p.max_price) return `$${p.min_price.toFixed(2)}`;
   return `From $${p.min_price.toFixed(2)}`;
@@ -49,12 +35,6 @@ function priceDisplay(p: Product) {
  * Render a 3D Orbit Card for T-shirts.
  */
 function renderOrbitCard(product: Product) {
-  const scarcityCount = getScarcityCount();
-  const scarcityMsg = scarcityCount ? SCARCITY_MESSAGES(scarcityCount) : null;
-  const scarcityHtml = scarcityMsg
-    ? `<div class="orbit-card__scarcity" aria-label="${scarcityMsg}">${scarcityMsg}</div>`
-    : '';
-
   return `
     <article class="orbit-card reveal"
              data-product-id="${product.id}">
@@ -67,7 +47,6 @@ function renderOrbitCard(product: Product) {
                  loading="lazy"
                  width="600"
                  height="600" />
-            ${scarcityHtml}
           </div>
           <div class="orbit-card__body">
             <p class="edition-label">Statement Tee</p>
@@ -196,7 +175,16 @@ function attachProductListeners() {
         el.addEventListener('click', () => {
             const productId = (el as HTMLElement).dataset.productId;
             const product = findProductById(productId!);
-            if (product) openCheckoutModal(product);
+            if (product) {
+                track.selectItem({
+                    item_id: String(product.id),
+                    item_name: product.title,
+                    item_brand: 'Bottom Line Apparel',
+                    item_category: product.category,
+                    price: product.min_price,
+                });
+                openCheckoutModal(product);
+            }
         });
     });
 }
