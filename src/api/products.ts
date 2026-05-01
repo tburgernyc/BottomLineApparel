@@ -33,6 +33,19 @@ declare global {
   }
 }
 
+// The slug map is { id: { slug, title, image } } both at build time
+// (passed in from prerender) and at runtime (loaded from
+// /products/_index.json into window.slugIndex). The renderers used to
+// template-interpolate the entry directly, which produced
+// `/products/[object Object]/`. Always extract `.slug` here.
+type SlugMap = Record<string, { slug: string } | undefined>;
+
+function pickHref(product: Product, slugIndex?: SlugMap) {
+  const entry = slugIndex && slugIndex[product.id];
+  const slug = entry?.slug ?? product.slug;
+  return slug ? `/products/${slug}/` : '#';
+}
+
 function priceDisplay(p: Product) {
   if (p.min_price === p.max_price) return `$${p.min_price.toFixed(2)}`;
   return `From $${p.min_price.toFixed(2)}`;
@@ -41,9 +54,8 @@ function priceDisplay(p: Product) {
 /**
  * Render a 3D Orbit Card for T-shirts.
  */
-export function renderOrbitCard(product: Product, slugIndex?: Record<string, string>) {
-  const slug = slugIndex ? slugIndex[product.id] : product.slug;
-  const href = slug ? `/products/${slug}/` : '#';
+export function renderOrbitCard(product: Product, slugIndex?: SlugMap) {
+  const href = pickHref(product, slugIndex);
   return `
     <article class="orbit-card reveal"
              data-product-id="${product.id}">
@@ -86,9 +98,8 @@ export function renderOrbitCard(product: Product, slugIndex?: Record<string, str
 /**
  * Render a standard product card for non-3D items.
  */
-export function renderProductCard(product: Product, slugIndex?: Record<string, string>) {
-  const slug = slugIndex ? slugIndex[product.id] : product.slug;
-  const href = slug ? `/products/${slug}/` : '#';
+export function renderProductCard(product: Product, slugIndex?: SlugMap) {
+  const href = pickHref(product, slugIndex);
   return `
     <article class="product-card reveal" data-product-id="${product.id}">
       <a href="${href}" class="product-card__link">
@@ -110,9 +121,8 @@ export function renderProductCard(product: Product, slugIndex?: Record<string, s
 /**
  * Render an accessory card.
  */
-export function renderAccessoryCard(product: Product, slugIndex?: Record<string, string>) {
-  const slug = slugIndex ? slugIndex[product.id] : product.slug;
-  const href = slug ? `/products/${slug}/` : '#';
+export function renderAccessoryCard(product: Product, slugIndex?: SlugMap) {
+  const href = pickHref(product, slugIndex);
   return `
     <article class="accessory-card reveal" data-product-id="${product.id}">
       <a href="${href}" class="accessory-card__link">
@@ -130,7 +140,7 @@ export function renderAccessoryCard(product: Product, slugIndex?: Record<string,
     </article>`;
 }
 
-type RenderFn = (p: Product, slugIndex?: Record<string, string>) => string;
+type RenderFn = (p: Product, slugIndex?: SlugMap) => string;
 
 const CATEGORY_RENDER: Record<string, { renderer: RenderFn; titleId?: string }> = {
   tshirts:     { renderer: renderOrbitCard },
@@ -180,7 +190,7 @@ export async function loadProducts() {
       const items = allProducts[cat] || [];
       if (!grid || grid.children.length > 0) continue;
 
-      grid.innerHTML = items.map((p) => renderer(p, (window.slugIndex as any) || {})).join('');
+      grid.innerHTML = items.map((p) => renderer(p, window.slugIndex)).join('');
 
       if (titleId) {
         const title = document.getElementById(titleId);

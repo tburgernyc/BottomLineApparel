@@ -27,13 +27,26 @@ const CONTENT_COLLECTIONS_DIR = 'content/collections';
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
+// Two Printful catalog titles literally contain the typo "Likited". Once a
+// typo'd slug ships to Google it's sticky, so map them to the corrected
+// spelling at slug time. If the corrected slug collides with another product
+// (the catalog has separate "limited" entries), uniqueSlug will append a
+// productID suffix the way it does for any other collision.
+const SLUG_OVERRIDES = {
+  'sprinkles-likited-edition-magsafe-tough-case-for-iphone':
+    'sprinkles-limited-edition-magsafe-tough-case-for-iphone',
+  'sprinkles-likited-edition-shaker-pint-glass':
+    'sprinkles-limited-edition-shaker-pint-glass',
+};
+
 function slugify(s) {
-  return String(s)
+  const naive = String(s)
     .toLowerCase()
     .normalize('NFKD').replace(/[^\x00-\x7F]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 80);
+  return SLUG_OVERRIDES[naive] || naive;
 }
 
 function uniqueSlug(title, productId, taken) {
@@ -398,7 +411,7 @@ function emitCollectionPages(split, groupedProducts, slugIndex) {
         let renderer = renderAccessoryCard;
         if (jsCat === 'tshirts' || jsCat === 'cropTops') renderer = renderOrbitCard;
         else if (['tanks', 'hoodies', 'bottoms'].includes(jsCat)) renderer = renderProductCard;
-        return items.map(p => renderer(p, slugIndex)).join('\\n');
+        return items.map(p => renderer(p, slugIndex)).join('\n');
       })(),
       `  </div>`,
       '</div>',
@@ -440,10 +453,24 @@ function emitProductPages(allProds, split, slugIndex) {
     }
     
     const descriptionHtml = overrideBody || product.description_html;
-    const wordCount = descriptionHtml.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length;
+    const descriptionText = descriptionHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = descriptionText ? descriptionText.split(/\s+/).length : 0;
     if (wordCount < 250 && !overrideBody) {
       console.warn(`prerender warning: Product ${product.id} (${slug}) has thin description (${wordCount} words).`);
     }
+
+    // The home shell's meta description is the brand pitch — leak-through on a
+    // PDP would mean every product looks identical to Google. Build a real
+    // per-product meta from short_description, then the override's first
+    // sentence(s), then a title fallback. ~155 chars is a safe SERP cap.
+    const metaSource =
+      (product.short_description && product.short_description.trim()) ||
+      descriptionText ||
+      `${product.title} by Bottom Line Apparel`;
+    const metaDescription =
+      metaSource.length <= 155
+        ? metaSource
+        : metaSource.slice(0, 155).replace(/\s+\S*$/, '').trim() + '…';
 
     const categoryTitle = product.category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
     const catSlugMap = {
@@ -468,10 +495,10 @@ function emitProductPages(allProds, split, slugIndex) {
         '  <section class="pdp-related" style="margin-top: 5rem;">',
         '    <h2 style="text-align: center; margin-bottom: 2rem;">More from this collection</h2>',
         `    <div class="${escapeAttr(gridClass)}">`,
-        related.map(p => renderer(p, slugIndex)).join('\\n'),
+        related.map(p => renderer(p, slugIndex)).join('\n'),
         '    </div>',
         '  </section>'
-      ].join('\\n');
+      ].join('\n');
     }
 
     const mainHtml = [
@@ -504,17 +531,21 @@ function emitProductPages(allProds, split, slugIndex) {
       { name: product.title, url: `${SITE_URL}${route}` }
     ];
     
-    product.slug = slug; 
+    // productSchema reads description_text first; pass the resolved text from
+    // the override (or Printful HTML stripped) so the JSON-LD carries real
+    // copy. Without this, every PDP shipped "description":"" — kills rich
+    // snippet eligibility.
+    const productForSchema = { ...product, slug, description_text: descriptionText };
 
     const schemaJsonLd = [
       organizationSchema(),
       breadcrumbSchema(crumbs),
-      productSchema(product)
+      productSchema(productForSchema)
     ];
 
     emitRoute(
       route,
-      { dataRoute: 'product', title: product.title, description: product.short_description, mainHtml, schemaJsonLd },
+      { dataRoute: 'product', title: product.title, description: metaDescription, mainHtml, schemaJsonLd },
       split
     );
     emitted.push(route);
@@ -545,10 +576,12 @@ async function main() {
   const takenSlugs = new Set();
   const slugIndex = {};
   
-  // First pass: preserve existing slugs
+  // First pass: preserve existing slugs — but skip stale slugs that are
+  // remap targets in SLUG_OVERRIDES (e.g. catalog-typo URLs we've decided
+  // to retire). The second pass will regenerate via the corrected slugify.
   for (const p of allProds) {
     const old = oldIndex[p.id];
-    if (old && old.slug && !takenSlugs.has(old.slug)) {
+    if (old && old.slug && !takenSlugs.has(old.slug) && !SLUG_OVERRIDES[old.slug]) {
       takenSlugs.add(old.slug);
       slugIndex[p.id] = { slug: old.slug, title: p.title, image: p.image };
     }

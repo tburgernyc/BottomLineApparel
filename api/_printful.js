@@ -197,7 +197,9 @@ export function shapeProduct(syncProduct, syncVariants) {
   const prices = variants.map(v => v.price);
   return {
     id: syncProduct.id,
-    title: syncProduct.name,
+    // Printful catalog titles can carry trailing whitespace / tabs; trim so
+    // the slug index, JSON-LD, and rendered HTML don't ship "Title\t".
+    title: String(syncProduct.name || '').trim(),
     short_description: extractShortDescription(syncProduct.description || ''),
     description_html: syncProduct.description || '',
     description_text: extractDescriptionText(syncProduct.description || ''),
