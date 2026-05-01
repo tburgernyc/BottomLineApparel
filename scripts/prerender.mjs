@@ -9,12 +9,18 @@
 // Future PRs (2–6) will call emitRoute() for /about, /collections/*,
 // /products/*, /blog/*, etc.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import matter from 'gray-matter';
+import MarkdownIt from 'markdown-it';
+import { organizationSchema, breadcrumbSchema, faqSchema } from './schema.mjs';
 
 const SITE_URL = 'https://bottomlineapparel.com';
 const DIST = 'dist';
 const SHELL_PATH = join(DIST, 'index.html');
+const CONTENT_PAGES_DIR = 'content/pages';
+
+const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
 const HEAD_SENTINEL = '<!-- PRERENDER:HEAD -->';
 const MAIN_SENTINEL = '<!-- PRERENDER:MAIN -->';
@@ -219,6 +225,97 @@ function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Render the optional `faqs` frontmatter array as a native
+ * <details>/<summary> accordion. No JS required — browsers handle
+ * open/close natively, and the accordion is fully crawlable. Q/A text is
+ * passed through markdown-it inline so light formatting (links, em, code)
+ * still works inside an answer.
+ */
+function renderFaqAccordion(faqs) {
+  if (!Array.isArray(faqs) || faqs.length === 0) return '';
+  const items = faqs
+    .map(f => {
+      const q = escapeHtmlText(String(f.q ?? ''));
+      const a = md.renderInline(String(f.a ?? ''));
+      return `      <details class="faq-item">\n        <summary>${q}</summary>\n        <div class="faq-answer"><p>${a}</p></div>\n      </details>`;
+    })
+    .join('\n');
+  return `\n    <div class="faq-list">\n${items}\n    </div>\n`;
+}
+
+/**
+ * Read content/pages/*.md, parse frontmatter + body, and call emitRoute()
+ * for each. Returns the list of emitted routes so they can be added to
+ * the sitemap.
+ */
+function emitContentPages(split) {
+  let entries;
+  try {
+    entries = readdirSync(CONTENT_PAGES_DIR);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      console.warn(`prerender: ${CONTENT_PAGES_DIR}/ does not exist; skipping content pages.`);
+      return [];
+    }
+    throw err;
+  }
+
+  const mdFiles = entries.filter(f => f.endsWith('.md')).sort();
+  const emitted = [];
+
+  for (const file of mdFiles) {
+    const filePath = join(CONTENT_PAGES_DIR, file);
+    const raw = readFileSync(filePath, 'utf8');
+    const parsed = matter(raw);
+    const fm = parsed.data || {};
+
+    const slug = String(fm.slug || file.replace(/\.md$/, ''));
+    const title = String(fm.title || '');
+    const description = String(fm.description || '');
+    const h1 = String(fm.h1 || title);
+
+    if (!slug || !title || !description || !h1) {
+      throw new Error(
+        `prerender: ${filePath} missing required frontmatter (slug/title/description/h1).`,
+      );
+    }
+
+    const route = `/${slug}/`;
+    const bodyHtml = md.render(parsed.content || '');
+    const faqsHtml = renderFaqAccordion(fm.faqs);
+
+    const mainHtml = [
+      '<div class="container">',
+      '  <article class="prose">',
+      `    <h1>${escapeHtmlText(h1)}</h1>`,
+      bodyHtml,
+      faqsHtml,
+      '  </article>',
+      '</div>',
+    ].join('\n');
+
+    const crumbs = [
+      { name: 'Home', url: `${SITE_URL}/` },
+      { name: h1, url: `${SITE_URL}${route}` },
+    ];
+    const schemaJsonLd = [organizationSchema(), breadcrumbSchema(crumbs)];
+    if (Array.isArray(fm.faqs) && fm.faqs.length) {
+      schemaJsonLd.push(faqSchema(fm.faqs));
+    }
+
+    emitRoute(
+      route,
+      { dataRoute: 'page', title, description, mainHtml, schemaJsonLd },
+      split,
+    );
+    emitted.push(route);
+    console.log(`prerender: emitted dist${route}index.html`);
+  }
+
+  return emitted;
+}
+
 function main() {
   const shell = readShell();
   const split = splitShell(shell);
@@ -226,7 +323,9 @@ function main() {
     throw new Error('prerender: chrome slice is empty — sentinels and structure may be out of sync');
   }
 
-  const routes = ['/'];
+  const contentRoutes = emitContentPages(split);
+
+  const routes = ['/', ...contentRoutes];
   emitRobots();
   emitSitemap(routes);
   console.log(`prerender: emitted dist/robots.txt and dist/sitemap.xml (${routes.length} URL${routes.length === 1 ? '' : 's'}).`);
