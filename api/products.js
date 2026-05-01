@@ -63,16 +63,12 @@ function pfHeaders(apiKey, storeId) {
   return headers;
 }
 
-export default async function handler(req, res) {
+export async function getProductsData() {
   const apiKey = process.env.PRINTFUL_API_KEY;
   const storeId = process.env.PRINTFUL_STORE_ID;
 
   if (!apiKey) {
-    console.error('[api/products] Configuration missing: PRINTFUL_API_KEY');
-    return res.status(503).json({
-      error: 'configuration_missing',
-      message: 'Server is not configured with Printful credentials.',
-    });
+    throw new Error('Server is not configured with Printful credentials (PRINTFUL_API_KEY missing).');
   }
 
   const headers = pfHeaders(apiKey, storeId);
@@ -82,18 +78,12 @@ export default async function handler(req, res) {
     productList = await fetchAllSyncProducts(headers);
     console.log(`[api/products] Printful: ${productList.length} sync products.`);
   } catch (err) {
-    console.error('[api/products] Product list fetch failed:', err.message);
-    return res.status(502).json({
-      error: 'upstream_error',
-      message: 'Failed to fetch product list from Printful.',
-      details: err.message,
-    });
+    throw new Error('Failed to fetch product list from Printful: ' + err.message);
   }
 
   const empty = { tshirts: [], cropTops: [], tanks: [], hoodies: [], bottoms: [], phoneCases: [], headwear: [], footwear: [], accessories: [] };
   if (!productList.length) {
-    res.setHeader('Cache-Control', 's-maxage=60');
-    return res.status(200).json(empty);
+    return empty;
   }
 
   // Fetch detailed sync_variants for each product, in parallel chunks
@@ -129,6 +119,19 @@ export default async function handler(req, res) {
     }
   }
 
-  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
-  return res.status(200).json(grouped);
+  return grouped;
+}
+
+export default async function handler(req, res) {
+  try {
+    const grouped = await getProductsData();
+    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
+    return res.status(200).json(grouped);
+  } catch (err) {
+    console.error('[api/products] handler error:', err.message);
+    if (err.message.includes('configuration_missing') || err.message.includes('not configured')) {
+      return res.status(503).json({ error: 'configuration_missing', message: err.message });
+    }
+    return res.status(502).json({ error: 'upstream_error', message: err.message });
+  }
 }

@@ -15,11 +15,33 @@ import { initAnalytics, completePurchaseIfReturning } from './analytics/analytic
 import { initCookieConsent } from './ui/cookie-consent';
 import { initCartDrawer, openCartDrawer } from './ui/cart-drawer';
 import { initAnnouncementBar } from './ui/announcement-bar';
-import { initSearch } from './ui/search';
 import { initNewsletter } from './ui/newsletter';
 import { track } from './analytics/analytics';
 import { allProducts } from './api/products';
 import { clear as clearCart } from './cart/state';
+
+import { initSearch } from './ui/search';
+import { openCheckoutModal } from './ui/modals';
+
+/**
+ * Initialize the Product Detail Page logic.
+ * Reads the inline JSON payload, configures the "Choose Options" button, and optionally updates the document title.
+ */
+function initProductDetailPage() {
+    const scriptTag = document.getElementById('bla-product');
+    if (!scriptTag) return;
+    try {
+        const productData = JSON.parse(scriptTag.textContent || '');
+        const buyBtn = document.getElementById('pdp-buy-btn');
+        if (buyBtn) {
+            buyBtn.addEventListener('click', () => {
+                openCheckoutModal(productData);
+            });
+        }
+    } catch (e) {
+        console.error('Failed to parse PDP inline JSON', e);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -99,6 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
         });
+    }
+
+    if (route === 'product') {
+        initProductDetailPage();
     }
 
     // Header cart icon → open drawer (universal)

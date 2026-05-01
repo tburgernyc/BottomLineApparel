@@ -83,7 +83,12 @@ function selectResult(id: string | null | undefined) {
     const p = findProductById(id);
     if (!p) return;
     closeSearch();
-    openCheckoutModal(p);
+    const slug = window.slugIndex ? window.slugIndex[p.id]?.slug : p.slug;
+    if (slug) {
+        window.location.href = `/products/${slug}/`;
+    } else {
+        openCheckoutModal(p); // Fallback if no slug
+    }
 }
 
 async function performSearch(query: string) {

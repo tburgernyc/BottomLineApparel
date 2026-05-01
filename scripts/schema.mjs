@@ -76,3 +76,37 @@ export function faqSchema(faqs) {
     })),
   });
 }
+
+/**
+ * Product schema with Offer or AggregateOffer depending on variants.
+ */
+export function productSchema(product) {
+  const offers = product.min_price === product.max_price
+    ? {
+        '@type': 'Offer',
+        url: `${SITE_URL}/products/${product.slug}/`,
+        priceCurrency: 'USD',
+        price: product.min_price.toFixed(2),
+        availability: 'https://schema.org/InStock',
+        itemCondition: 'https://schema.org/NewCondition',
+      }
+    : {
+        '@type': 'AggregateOffer',
+        url: `${SITE_URL}/products/${product.slug}/`,
+        priceCurrency: 'USD',
+        lowPrice: product.min_price.toFixed(2),
+        highPrice: product.max_price.toFixed(2),
+        offerCount: product.variants.length,
+        availability: 'https://schema.org/InStock',
+      };
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.title,
+    description: product.description_text || product.short_description,
+    image: product.image,
+    sku: String(product.id),
+    brand: { '@type': 'Brand', name: 'Bottom Line Apparel' },
+    offers,
+  });
+}

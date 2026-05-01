@@ -114,6 +114,11 @@ export function extractShortDescription(html) {
   return match ? match[0].trim() : text.slice(0, 120);
 }
 
+export function extractDescriptionText(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function classify(name) {
   const lower = (name || '').toLowerCase();
   const rules = [
@@ -194,6 +199,8 @@ export function shapeProduct(syncProduct, syncVariants) {
     id: syncProduct.id,
     title: syncProduct.name,
     short_description: extractShortDescription(syncProduct.description || ''),
+    description_html: syncProduct.description || '',
+    description_text: extractDescriptionText(syncProduct.description || ''),
     min_price: Math.min(...prices),
     max_price: Math.max(...prices),
     image: bestProductImage(syncProduct, syncVariants),

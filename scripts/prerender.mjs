@@ -9,11 +9,15 @@
 // Future PRs (2–6) will call emitRoute() for /about, /collections/*,
 // /products/*, /blog/*, etc.
 
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
-import { organizationSchema, breadcrumbSchema, faqSchema } from './schema.mjs';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+import { organizationSchema, breadcrumbSchema, faqSchema, productSchema } from './schema.mjs';
+import { getProductsData } from '../api/products.js';
+import { renderOrbitCard, renderProductCard, renderAccessoryCard } from './_card-renderers.mjs';
 
 const SITE_URL = 'https://bottomlineapparel.com';
 const DIST = 'dist';
@@ -22,6 +26,28 @@ const CONTENT_PAGES_DIR = 'content/pages';
 const CONTENT_COLLECTIONS_DIR = 'content/collections';
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
+
+function slugify(s) {
+  return String(s)
+    .toLowerCase()
+    .normalize('NFKD').replace(/[^\x00-\x7F]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+}
+
+function uniqueSlug(title, productId, taken) {
+  const base = slugify(title) || 'product';
+  if (!taken.has(base)) return base;
+  // Append last 4 chars of productId for stability across builds.
+  const suffix = String(productId).slice(-4);
+  const withSuffix = `${base}-${suffix}`;
+  if (!taken.has(withSuffix)) return withSuffix;
+  // Last resort: numeric counter.
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
 
 const HEAD_SENTINEL = '<!-- PRERENDER:HEAD -->';
 const MAIN_SENTINEL = '<!-- PRERENDER:MAIN -->';
@@ -321,7 +347,7 @@ function emitContentPages(split) {
  * Read content/collections/*.md, parse frontmatter + body, and call emitRoute()
  * for each. Generates the grid container for JS to hydrate.
  */
-function emitCollectionPages(split) {
+function emitCollectionPages(split, groupedProducts, slugIndex) {
   let entries;
   try {
     entries = readdirSync(CONTENT_COLLECTIONS_DIR);
@@ -364,7 +390,17 @@ function emitCollectionPages(split) {
       `    <h1 class="lux-title">${escapeHtmlText(h1)}</h1>`,
       bodyHtml,
       '  </article>',
-      `  <div class="${escapeAttr(gridClass)}" id="${escapeAttr(gridId)}" aria-label="${escapeAttr(h1)} products"></div>`,
+      `  <div class="${escapeAttr(gridClass)}" id="${escapeAttr(gridId)}" aria-label="${escapeAttr(h1)} products">`,
+      (function(){
+        const JS_CAT_MAP = { 'tshirts': 'tshirts', 'crop-tops': 'cropTops', 'tanks': 'tanks', 'hoodies': 'hoodies', 'bottoms': 'bottoms', 'phone-cases': 'phoneCases', 'headwear': 'headwear', 'footwear': 'footwear', 'accessories': 'accessories' };
+        const jsCat = JS_CAT_MAP[slug];
+        const items = groupedProducts[jsCat] || [];
+        let renderer = renderAccessoryCard;
+        if (jsCat === 'tshirts' || jsCat === 'cropTops') renderer = renderOrbitCard;
+        else if (['tanks', 'hoodies', 'bottoms'].includes(jsCat)) renderer = renderProductCard;
+        return items.map(p => renderer(p, slugIndex)).join('\\n');
+      })(),
+      `  </div>`,
       '</div>',
     ].join('\n');
 
@@ -387,17 +423,154 @@ function emitCollectionPages(split) {
   return emitted;
 }
 
-function main() {
+function emitProductPages(allProds, split, slugIndex) {
+  const emitted = [];
+  const CONTENT_PRODUCTS_DIR = 'content/products';
+
+  for (const product of allProds) {
+    const slug = slugIndex[product.id].slug;
+    const route = `/products/${slug}/`;
+    
+    let overrideBody = '';
+    const overridePath = join(CONTENT_PRODUCTS_DIR, `${slug}.md`);
+    if (existsSync(overridePath)) {
+      const raw = readFileSync(overridePath, 'utf8');
+      const parsed = matter(raw);
+      overrideBody = md.render(parsed.content || '');
+    }
+    
+    const descriptionHtml = overrideBody || product.description_html;
+    const wordCount = descriptionHtml.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length;
+    if (wordCount < 250 && !overrideBody) {
+      console.warn(`prerender warning: Product ${product.id} (${slug}) has thin description (${wordCount} words).`);
+    }
+
+    const categoryTitle = product.category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    const catSlugMap = {
+      tshirts: 'tshirts', cropTops: 'crop-tops', tanks: 'tanks', hoodies: 'hoodies',
+      bottoms: 'bottoms', phoneCases: 'phone-cases', headwear: 'headwear', footwear: 'footwear', accessories: 'accessories'
+    };
+    const catRouteSlug = catSlugMap[product.category] || 'accessories';
+
+    const priceDisplay = product.min_price === product.max_price
+      ? `$${product.min_price.toFixed(2)}`
+      : `From $${product.min_price.toFixed(2)}`;
+
+    const gridClass = (product.category === 'tshirts' || product.category === 'cropTops') ? 'orbit-grid' : 'products-grid';
+    let renderer = renderAccessoryCard;
+    if (product.category === 'tshirts' || product.category === 'cropTops') renderer = renderOrbitCard;
+    else if (['tanks', 'hoodies', 'bottoms'].includes(product.category)) renderer = renderProductCard;
+
+    const related = allProds.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+    let relatedHtml = '';
+    if (related.length > 0) {
+      relatedHtml = [
+        '  <section class="pdp-related" style="margin-top: 5rem;">',
+        '    <h2 style="text-align: center; margin-bottom: 2rem;">More from this collection</h2>',
+        `    <div class="${escapeAttr(gridClass)}">`,
+        related.map(p => renderer(p, slugIndex)).join('\\n'),
+        '    </div>',
+        '  </section>'
+      ].join('\\n');
+    }
+
+    const mainHtml = [
+      '<article class="pdp container" style="padding-top: 120px; padding-bottom: 80px;">',
+      '  <nav class="breadcrumbs" aria-label="Breadcrumb" style="margin-bottom: 2rem;">',
+      `    <a href="/">Home</a> › <a href="/collections/${catRouteSlug}/">${escapeHtmlText(categoryTitle)}</a> › <span>${escapeHtmlText(product.title)}</span>`,
+      '  </nav>',
+      '  <div class="pdp-hero" style="display: flex; gap: 4rem; margin-bottom: 4rem; align-items: flex-start; flex-wrap: wrap;">',
+      '    <picture class="pdp-image" style="flex: 1; min-width: 300px;">',
+      `      <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" width="900" height="900" loading="eager" style="width: 100%; height: auto; border-radius: 8px;" />`,
+      '    </picture>',
+      '    <div class="pdp-info" style="flex: 1; min-width: 300px;">',
+      `      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">${escapeHtmlText(product.title)} by Bottom Line Apparel</h1>`,
+      `      <p class="pdp-price" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem;">${priceDisplay}</p>`,
+      `      <button id="pdp-buy-btn" class="btn btn--primary" data-product-id="${product.id}">Choose Options</button>`,
+      '    </div>',
+      '  </div>',
+      '  <section class="pdp-description prose" style="max-width: 800px; margin: 0 auto;">',
+      '    <h2>About this piece</h2>',
+      `    ${descriptionHtml}`,
+      '  </section>',
+      relatedHtml,
+      `  <script type="application/json" id="bla-product">\n${JSON.stringify({ ...product, slug }).replace(/<\/script>/gi, '<\\/script>')}\n  </script>`,
+      '</article>'
+    ].join('\n');
+
+    const crumbs = [
+      { name: 'Home', url: `${SITE_URL}/` },
+      { name: categoryTitle, url: `${SITE_URL}/collections/${catRouteSlug}/` },
+      { name: product.title, url: `${SITE_URL}${route}` }
+    ];
+    
+    product.slug = slug; 
+
+    const schemaJsonLd = [
+      organizationSchema(),
+      breadcrumbSchema(crumbs),
+      productSchema(product)
+    ];
+
+    emitRoute(
+      route,
+      { dataRoute: 'product', title: product.title, description: product.short_description, mainHtml, schemaJsonLd },
+      split
+    );
+    emitted.push(route);
+    console.log(`prerender: emitted dist${route}index.html`);
+  }
+  return emitted;
+}
+
+async function main() {
   const shell = readShell();
   const split = splitShell(shell);
   if (!split.chromeAfterBodyOpen.length) {
     throw new Error('prerender: chrome slice is empty — sentinels and structure may be out of sync');
   }
 
-  const contentRoutes = emitContentPages(split);
-  const collectionRoutes = emitCollectionPages(split);
+  // Fetch product data and generate slug index
+  const groupedProducts = await getProductsData();
+  const allProds = Object.values(groupedProducts).flat();
+  
+  const indexFile = join(DIST, 'products', '_index.json');
+  let oldIndex = {};
+  if (existsSync(indexFile)) {
+    try {
+      oldIndex = JSON.parse(readFileSync(indexFile, 'utf8'));
+    } catch(e) {}
+  }
+  
+  const takenSlugs = new Set();
+  const slugIndex = {};
+  
+  // First pass: preserve existing slugs
+  for (const p of allProds) {
+    const old = oldIndex[p.id];
+    if (old && old.slug && !takenSlugs.has(old.slug)) {
+      takenSlugs.add(old.slug);
+      slugIndex[p.id] = { slug: old.slug, title: p.title, image: p.image };
+    }
+  }
+  
+  // Second pass: generate new slugs
+  for (const p of allProds) {
+    if (!slugIndex[p.id]) {
+      const s = uniqueSlug(p.title, p.id, takenSlugs);
+      takenSlugs.add(s);
+      slugIndex[p.id] = { slug: s, title: p.title, image: p.image };
+    }
+  }
+  
+  mkdirSync(dirname(indexFile), { recursive: true });
+  writeFileSync(indexFile, JSON.stringify(slugIndex, null, 2), 'utf8');
 
-  const routes = ['/', ...contentRoutes, ...collectionRoutes];
+  const contentRoutes = emitContentPages(split);
+  const collectionRoutes = emitCollectionPages(split, groupedProducts, slugIndex);
+  const productRoutes = emitProductPages(allProds, split, slugIndex);
+
+  const routes = ['/', ...contentRoutes, ...collectionRoutes, ...productRoutes];
   emitRobots();
   emitSitemap(routes);
   console.log(`prerender: emitted dist/robots.txt and dist/sitemap.xml (${routes.length} URL${routes.length === 1 ? '' : 's'}).`);
