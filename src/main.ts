@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // routes don't accidentally trigger home-only inits.
     const route = document.body.dataset.route ?? '';
     const isHome = route === 'home';
+    const isCollection = route === 'collection';
 
     // Analytics + consent must come first so any later module that emits
     // events finds the gtag/fbq/ttq hooks already wired.
@@ -65,13 +66,27 @@ document.addEventListener('DOMContentLoaded', () => {
         initCarousel();
         initCountdown();
         initUGCTicker();   // No-op now that fake UGC is removed; retained for safe boot.
+    }
 
+    if (isHome || isCollection) {
         // Data hydration. Products power both the grids and the search index.
         // Once loaded, fire one `view_item_list` event per category so GA4 can
         // measure category impressions vs. clicks.
         loadProducts().then(() => {
             for (const [category, items] of Object.entries(allProducts)) {
                 if (!items.length) continue;
+                // Only track impression if the category grid is in the DOM
+                const gridId = category === 'tshirts' ? 'tshirts-grid' :
+                               category === 'cropTops' ? 'crop-tops-grid' :
+                               category === 'tanks' ? 'tanks-grid' :
+                               category === 'hoodies' ? 'hoodies-grid' :
+                               category === 'bottoms' ? 'bottoms-grid' :
+                               category === 'phoneCases' ? 'phone-cases-grid' :
+                               category === 'headwear' ? 'headwear-grid' :
+                               category === 'footwear' ? 'footwear-grid' :
+                               category === 'accessories' ? 'accessories-grid' : null;
+                if (gridId && !document.getElementById(gridId)) continue;
+
                 track.viewItemList(
                     items.slice(0, 10).map(p => ({
                         item_id: String(p.id),

@@ -19,6 +19,7 @@ const SITE_URL = 'https://bottomlineapparel.com';
 const DIST = 'dist';
 const SHELL_PATH = join(DIST, 'index.html');
 const CONTENT_PAGES_DIR = 'content/pages';
+const CONTENT_COLLECTIONS_DIR = 'content/collections';
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
@@ -316,6 +317,76 @@ function emitContentPages(split) {
   return emitted;
 }
 
+/**
+ * Read content/collections/*.md, parse frontmatter + body, and call emitRoute()
+ * for each. Generates the grid container for JS to hydrate.
+ */
+function emitCollectionPages(split) {
+  let entries;
+  try {
+    entries = readdirSync(CONTENT_COLLECTIONS_DIR);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      console.warn(`prerender: ${CONTENT_COLLECTIONS_DIR}/ does not exist; skipping collection pages.`);
+      return [];
+    }
+    throw err;
+  }
+
+  const mdFiles = entries.filter(f => f.endsWith('.md')).sort();
+  const emitted = [];
+
+  for (const file of mdFiles) {
+    const filePath = join(CONTENT_COLLECTIONS_DIR, file);
+    const raw = readFileSync(filePath, 'utf8');
+    const parsed = matter(raw);
+    const fm = parsed.data || {};
+
+    const slug = String(fm.slug || file.replace(/\.md$/, ''));
+    const title = String(fm.title || '');
+    const description = String(fm.description || '');
+    const h1 = String(fm.h1 || title);
+    const gridId = String(fm.gridId || '');
+    const gridClass = String(fm.gridClass || '');
+
+    if (!slug || !title || !description || !h1 || !gridId || !gridClass) {
+      throw new Error(
+        `prerender: ${filePath} missing required frontmatter (slug/title/description/h1/gridId/gridClass).`
+      );
+    }
+
+    const route = `/collections/${slug}/`;
+    const bodyHtml = md.render(parsed.content || '');
+
+    const mainHtml = [
+      '<div class="container" style="padding-top: 120px; padding-bottom: 80px;">',
+      '  <article class="prose" style="margin-bottom: 3rem; text-align: center;">',
+      `    <h1 class="lux-title">${escapeHtmlText(h1)}</h1>`,
+      bodyHtml,
+      '  </article>',
+      `  <div class="${escapeAttr(gridClass)}" id="${escapeAttr(gridId)}" aria-label="${escapeAttr(h1)} products"></div>`,
+      '</div>',
+    ].join('\n');
+
+    const crumbs = [
+      { name: 'Home', url: `${SITE_URL}/` },
+      { name: 'Collections', url: `${SITE_URL}/#tshirts` },
+      { name: h1, url: `${SITE_URL}${route}` },
+    ];
+    const schemaJsonLd = [organizationSchema(), breadcrumbSchema(crumbs)];
+
+    emitRoute(
+      route,
+      { dataRoute: 'collection', title, description, mainHtml, schemaJsonLd },
+      split,
+    );
+    emitted.push(route);
+    console.log(`prerender: emitted dist${route}index.html`);
+  }
+
+  return emitted;
+}
+
 function main() {
   const shell = readShell();
   const split = splitShell(shell);
@@ -324,8 +395,9 @@ function main() {
   }
 
   const contentRoutes = emitContentPages(split);
+  const collectionRoutes = emitCollectionPages(split);
 
-  const routes = ['/', ...contentRoutes];
+  const routes = ['/', ...contentRoutes, ...collectionRoutes];
   emitRobots();
   emitSitemap(routes);
   console.log(`prerender: emitted dist/robots.txt and dist/sitemap.xml (${routes.length} URL${routes.length === 1 ? '' : 's'}).`);
