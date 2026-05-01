@@ -2,7 +2,8 @@
 // scripts/prerender.mjs
 // Post-build prerender step. Reads the Vite-built dist/index.html (so hashed
 // asset paths are correct), splits it on PRERENDER:HEAD / PRERENDER:MAIN
-// sentinels, and emits per-route HTML alongside robots.txt + sitemap.xml.
+// sentinels (plus the </head>, <body>, <main> structural anchors), and
+// emits per-route HTML alongside robots.txt + sitemap.xml.
 //
 // PR 1 scope: emit only robots.txt + sitemap.xml containing `/`.
 // Future PRs (2–6) will call emitRoute() for /about, /collections/*,
@@ -23,20 +24,31 @@ function readShell() {
 }
 
 /**
- * Split the shell into head, mainShell (home content between <main>...</main>),
- * and footer (everything after </main>). Sentinels are preserved at the split
- * points so emitRoute() can reconstruct cleanly.
+ * Split the shell into the four pieces a non-home route needs to be
+ * reconstructed:
  *
- * Layout:
- *   ...head...<!-- PRERENDER:HEAD --></head><body data-route="home">...
- *     <main>... home main ... <!-- PRERENDER:MAIN --></main>
- *   ...scripts/footer...
+ *   [headBlock]
+ *     ...everything from start of file through </head> (inclusive).
+ *     Includes the HEAD_SENTINEL near the end so schema injection has an
+ *     anchor.
  *
- * Returns:
- *   - headBlock: everything up to and including HEAD_SENTINEL
- *   - homeMain: home's <main> contents up to but excluding MAIN_SENTINEL
- *     (used as default if a route doesn't supply its own main HTML)
- *   - footerBlock: MAIN_SENTINEL + everything after
+ *   [chromeAfterBodyOpen]
+ *     Everything after the source <body...> tag up to and including the
+ *     <main id="main-content"...> opening tag. This is the announcement
+ *     bar / header / cart drawer / modals — content that should appear
+ *     identically on every prerendered route.
+ *
+ *   [homeMainInner]
+ *     The home's inner <main> content, between the <main> opener and the
+ *     MAIN_SENTINEL. Used as the default if a route doesn't supply its
+ *     own mainHtml.
+ *
+ *   [mainCloseAndFooter]
+ *     From </main> through end of file. The MAIN_SENTINEL itself is
+ *     stripped (it's just a marker, not content).
+ *
+ * Throws on any missing / out-of-order anchor so build fails loud rather
+ * than silently emitting broken HTML.
  */
 function splitShell(html) {
   const headIdx = html.indexOf(HEAD_SENTINEL);
@@ -50,60 +62,110 @@ function splitShell(html) {
   if (mainIdx < headIdx) {
     throw new Error(`prerender: sentinels are out of order in ${SHELL_PATH}`);
   }
-  const headBlock = html.slice(0, headIdx + HEAD_SENTINEL.length);
-  const homeMain = html.slice(headIdx + HEAD_SENTINEL.length, mainIdx);
-  const footerBlock = html.slice(mainIdx);
-  return { headBlock, homeMain, footerBlock };
+
+  const headCloseIdx = html.indexOf('</head>', headIdx);
+  if (headCloseIdx === -1) {
+    throw new Error('prerender: </head> not found after PRERENDER:HEAD sentinel');
+  }
+  const headEnd = headCloseIdx + '</head>'.length;
+
+  const bodyOpenMatch = html.slice(headEnd).match(/<body[^>]*>/i);
+  if (!bodyOpenMatch) {
+    throw new Error('prerender: <body> tag not found after </head>');
+  }
+  const bodyOpenStart = headEnd + bodyOpenMatch.index;
+  const bodyOpenEnd = bodyOpenStart + bodyOpenMatch[0].length;
+
+  const chromeSlice = html.slice(bodyOpenEnd, mainIdx);
+  const mainOpenMatch = chromeSlice.match(/<main[^>]*>/i);
+  if (!mainOpenMatch) {
+    throw new Error('prerender: <main> opening tag not found between <body> and PRERENDER:MAIN');
+  }
+  const mainOpenAbs = bodyOpenEnd + mainOpenMatch.index;
+  const mainOpenEnd = mainOpenAbs + mainOpenMatch[0].length;
+
+  const headBlock = html.slice(0, headEnd);
+  const chromeAfterBodyOpen = html.slice(bodyOpenEnd, mainOpenEnd);
+  const homeMainInner = html.slice(mainOpenEnd, mainIdx);
+  const mainCloseAndFooter = html.slice(mainIdx + MAIN_SENTINEL.length);
+
+  return { headBlock, chromeAfterBodyOpen, homeMainInner, mainCloseAndFooter };
 }
 
 /**
- * Emit a route's index.html. The split shell's head and footer are reused so
- * hashed asset paths and shared scripts stay consistent across routes.
+ * Replace via regex; throw if the regex didn't match. Same loud-failure
+ * ethos as splitShell — if the source HTML drifts and a replacement
+ * silently no-ops, every emitted route would inherit the home's title /
+ * description / canonical. Preferable to fail the build.
+ */
+function replaceOrThrow(html, regex, replacement, what) {
+  if (!regex.test(html)) {
+    throw new Error(`prerender: regex for "${what}" did not match — source HTML may have drifted`);
+  }
+  return html.replace(regex, replacement);
+}
+
+/**
+ * Emit a route's index.html. The split shell's head, chrome, and footer
+ * are reused so hashed asset paths and shared scripts stay consistent
+ * across routes.
  *
  * @param {string} route          e.g. '/about/' or '/collections/tees/'
  * @param {object} opts
- * @param {string} opts.dataRoute body data-route attribute (e.g. 'about', 'collection', 'product')
- * @param {string} opts.title     <title> override (replaces existing in head)
+ * @param {string} opts.dataRoute body data-route attribute (e.g. 'page', 'collection', 'product')
+ * @param {string} opts.title     <title> override
  * @param {string} opts.description meta description override
- * @param {string} opts.canonical canonical URL (defaults to SITE_URL + route)
- * @param {string} opts.mainHtml  HTML to inject between <main> and </main>
+ * @param {string} [opts.canonical] canonical URL (defaults to SITE_URL + route)
+ * @param {string} opts.mainHtml  HTML to inject between <main>...</main>
  * @param {string[]} [opts.schemaJsonLd] additional JSON-LD blocks to inject before </head>
+ * @param {object} split          result of splitShell()
  */
 function emitRoute(route, opts, split) {
-  const { headBlock, footerBlock } = split;
+  const { headBlock, chromeAfterBodyOpen, mainCloseAndFooter } = split;
   const dataRoute = opts.dataRoute || 'page';
   const canonical = opts.canonical || `${SITE_URL}${route}`;
 
   let head = headBlock;
+
   if (opts.title) {
-    head = head.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(opts.title)}</title>`);
-  }
-  if (opts.description) {
-    head = head.replace(
-      /<meta name="description" content="[^"]*"\s*\/?>/i,
-      `<meta name="description" content="${escapeAttr(opts.description)}" />`,
+    head = replaceOrThrow(
+      head,
+      /<title>[^<]*<\/title>/i,
+      `<title>${escapeHtmlText(opts.title)}</title>`,
+      '<title>',
     );
   }
-  head = head.replace(
+
+  if (opts.description) {
+    head = replaceOrThrow(
+      head,
+      /<meta name="description" content="[^"]*"\s*\/?>/i,
+      `<meta name="description" content="${escapeAttr(opts.description)}" />`,
+      'meta description',
+    );
+  }
+
+  head = replaceOrThrow(
+    head,
     /<link rel="canonical" href="[^"]*"\s*\/?>/i,
     `<link rel="canonical" href="${escapeAttr(canonical)}" />`,
+    'canonical link',
   );
+
   if (opts.schemaJsonLd && opts.schemaJsonLd.length) {
     const blocks = opts.schemaJsonLd
       .map(s => `<script type="application/ld+json">${s}</script>`)
       .join('\n');
-    head = head.replace(HEAD_SENTINEL, `${blocks}\n${HEAD_SENTINEL}`);
+    head = replaceOrThrow(
+      head,
+      new RegExp(escapeRegex(HEAD_SENTINEL)),
+      `${blocks}\n${HEAD_SENTINEL}`,
+      'PRERENDER:HEAD sentinel',
+    );
   }
 
-  const body = `<body data-route="${escapeAttr(dataRoute)}">`;
-  const footerWithBody = footerBlock.replace(/<body[^>]*>/, body);
-
-  const main = `<main id="main-content" tabindex="-1">\n${opts.mainHtml || ''}\n`;
-
-  // Reconstruction: head ... </head><body data-route="..."> + main + footer-from-MAIN
-  // The original shell's <body> tag is in headBlock — we need to swap it.
-  const headWithBody = head.replace(/<body[^>]*>/, body);
-  const html = `${headWithBody}\n${main}${footerWithBody}`;
+  const bodyOpen = `<body data-route="${escapeAttr(dataRoute)}">`;
+  const html = `${head}\n${bodyOpen}${chromeAfterBodyOpen}\n${opts.mainHtml || ''}\n${mainCloseAndFooter}`;
 
   const outPath = join(DIST, route.replace(/^\/|\/$/g, ''), 'index.html');
   mkdirSync(dirname(outPath), { recursive: true });
@@ -122,6 +184,9 @@ function emitRobots() {
 }
 
 function emitSitemap(routes) {
+  if (!routes.length) {
+    throw new Error('prerender: refusing to emit empty sitemap.xml');
+  }
   const today = new Date().toISOString().slice(0, 10);
   const urls = routes
     .map(route => {
@@ -133,7 +198,8 @@ function emitSitemap(routes) {
   writeFileSync(join(DIST, 'sitemap.xml'), xml, 'utf8');
 }
 
-function escapeHtml(s) {
+// Text-context HTML escaping. Use escapeAttr inside attribute values.
+function escapeHtmlText(s) {
   return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }
 
@@ -149,15 +215,16 @@ function escapeXml(s) {
   }[c]));
 }
 
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function main() {
   const shell = readShell();
   const split = splitShell(shell);
-  // Sanity: the split must succeed on the home shell so future routes can rely on it.
-  if (!split.homeMain.length) {
-    throw new Error('prerender: home main slice is empty — sentinels may be adjacent');
+  if (!split.chromeAfterBodyOpen.length) {
+    throw new Error('prerender: chrome slice is empty — sentinels and structure may be out of sync');
   }
-  // Future PRs: emitRoute('/about/', { ... }, split); etc.
-  // emitRoute is exported below for that purpose.
 
   const routes = ['/'];
   emitRobots();
@@ -165,6 +232,10 @@ function main() {
   console.log(`prerender: emitted dist/robots.txt and dist/sitemap.xml (${routes.length} URL${routes.length === 1 ? '' : 's'}).`);
 }
 
-export { readShell, splitShell, emitRoute, emitRobots, emitSitemap, SITE_URL, DIST };
+export {
+  readShell, splitShell, emitRoute, emitRobots, emitSitemap,
+  escapeHtmlText, escapeAttr, escapeXml,
+  SITE_URL, DIST, HEAD_SENTINEL, MAIN_SENTINEL,
+};
 
 main();

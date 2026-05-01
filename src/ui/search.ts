@@ -10,7 +10,7 @@
  */
 
 import Fuse from 'fuse.js';
-import { allProducts, findProductById, type Product } from '../api/products';
+import { allProducts, findProductById, loadProducts, type Product } from '../api/products';
 import { openCheckoutModal } from './modals';
 import { escapeHtml, escapeAttr } from '../utils/helpers';
 import { track } from '../analytics/analytics';
@@ -18,6 +18,7 @@ import { track } from '../analytics/analytics';
 let fuse: Fuse<Product> | null = null;
 let activeIndex = -1;
 let lastResults: Product[] = [];
+let hydratePromise: Promise<void> | null = null;
 
 const FUSE_OPTS = {
     keys: [
@@ -36,6 +37,23 @@ function buildIndex() {
         for (const p of cat) flat.push(p);
     }
     fuse = new Fuse(flat, FUSE_OPTS);
+}
+
+// On non-home routes loadProducts() is gated out of the boot sequence, so the
+// search index would build over an empty allProducts object. Trigger a fetch
+// the first time the overlay opens, but only once — concurrent opens reuse
+// the in-flight promise.
+function ensureHydrated(): Promise<void> {
+    if (hydratePromise) return hydratePromise;
+    const populated = Object.values(allProducts).some(cat => cat.length > 0);
+    if (populated) {
+        hydratePromise = Promise.resolve();
+        return hydratePromise;
+    }
+    hydratePromise = loadProducts().then(() => {
+        fuse = null;
+    });
+    return hydratePromise;
 }
 
 function renderResults(results: Product[]) {
@@ -68,14 +86,15 @@ function selectResult(id: string | null | undefined) {
     openCheckoutModal(p);
 }
 
-function performSearch(query: string) {
-    if (!fuse) buildIndex();
-    if (!fuse) return;
+async function performSearch(query: string) {
     if (!query.trim()) {
         lastResults = [];
         renderResults([]);
         return;
     }
+    await ensureHydrated();
+    if (!fuse) buildIndex();
+    if (!fuse) return;
     const hits = fuse.search(query, { limit: 8 }).map(r => r.item);
     lastResults = hits;
     activeIndex = -1;
@@ -89,11 +108,13 @@ export function openSearch() {
     if (!overlay || !input) return;
     overlay.removeAttribute('hidden');
     document.body.style.overflow = 'hidden';
-    if (!fuse) buildIndex();
     activeIndex = -1;
     input.value = '';
     renderResults([]);
     setTimeout(() => input.focus(), 50);
+    void ensureHydrated().then(() => {
+        if (!fuse) buildIndex();
+    });
 }
 
 export function closeSearch() {
