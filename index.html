@@ -47,8 +47,9 @@
     "sameAs": ["https://www.tiktok.com/@bottomlineapparel"]
   }
   </script>
+<!-- PRERENDER:HEAD -->
 </head>
-<body>
+<body data-route="home">
 
   <!-- Skip to content removed as per user request -->
   <!-- Announcement / free-shipping bar (text updates dynamically based on cart subtotal) -->
@@ -554,6 +555,7 @@
       </div>
     </section>
 
+<!-- PRERENDER:MAIN -->
 </main>
 
   <!-- ═══════════════════ FOOTER ═══════════════════ -->
@@ -656,7 +658,9 @@
     no ghost events fire in dev/staging.
   -->
   <script>
+    // PR1[GA4]: replace with real Measurement ID before going live
     window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // GA4 Measurement ID
+    // PR1[PIXELS]: paste real TikTok and Meta pixel IDs before going live
     window.BLA_TTQ_ID       = '';               // TikTok Pixel ID (or leave blank)
     window.BLA_META_ID      = '';               // Meta Pixel ID (or leave blank)
   </script>
