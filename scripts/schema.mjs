@@ -110,3 +110,40 @@ export function productSchema(product) {
     offers,
   });
 }
+
+/**
+ * Article schema for blog posts. Google needs `mainEntityOfPage`,
+ * `datePublished`, an `image`, an `author.name`, and a `publisher.logo`
+ * for blog snippets to be eligible. We pass everything explicitly so a
+ * future content drift can't quietly break rich-result eligibility.
+ *
+ * @param {object} post
+ * @param {string} post.url        canonical URL of the post
+ * @param {string} post.title
+ * @param {string} post.description
+ * @param {string} post.image      absolute URL
+ * @param {string} post.author     human name
+ * @param {string} post.datePublished  ISO 8601 date
+ * @param {string} [post.dateModified] ISO 8601 date; defaults to datePublished
+ */
+export function articleSchema(post) {
+  if (!post || !post.url || !post.title || !post.datePublished) {
+    throw new Error('articleSchema: post requires url, title, datePublished');
+  }
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    mainEntityOfPage: { '@type': 'WebPage', '@id': post.url },
+    headline: post.title,
+    description: post.description || '',
+    image: post.image || `${SITE_URL}/og-cover.jpg`,
+    author: { '@type': 'Person', name: post.author || 'The Bottom Line Team' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Bottom Line Apparel',
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo.png` },
+    },
+    datePublished: post.datePublished,
+    dateModified: post.dateModified || post.datePublished,
+  });
+}

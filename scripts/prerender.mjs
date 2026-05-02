@@ -15,7 +15,7 @@ import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
-import { organizationSchema, breadcrumbSchema, faqSchema, productSchema } from './schema.mjs';
+import { organizationSchema, breadcrumbSchema, faqSchema, productSchema, articleSchema } from './schema.mjs';
 import { getProductsData } from '../api/products.js';
 import { renderOrbitCard, renderProductCard, renderAccessoryCard } from './_card-renderers.mjs';
 
@@ -24,6 +24,7 @@ const DIST = 'dist';
 const SHELL_PATH = join(DIST, 'index.html');
 const CONTENT_PAGES_DIR = 'content/pages';
 const CONTENT_COLLECTIONS_DIR = 'content/collections';
+const CONTENT_BLOG_DIR = 'content/blog';
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
@@ -554,6 +555,204 @@ function emitProductPages(allProds, split, slugIndex) {
   return emitted;
 }
 
+/**
+ * Read all content/blog/*.md files and return parsed posts sorted newest-first
+ * by datePublished. Each post carries the parsed frontmatter plus the rendered
+ * body HTML and the resolved canonical URL/route.
+ */
+function loadBlogPosts() {
+  let entries;
+  try {
+    entries = readdirSync(CONTENT_BLOG_DIR);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      console.warn(`prerender: ${CONTENT_BLOG_DIR}/ does not exist; skipping blog.`);
+      return [];
+    }
+    throw err;
+  }
+
+  const posts = entries
+    .filter(f => f.endsWith('.md'))
+    .map(file => {
+      const filePath = join(CONTENT_BLOG_DIR, file);
+      const raw = readFileSync(filePath, 'utf8');
+      const parsed = matter(raw);
+      const fm = parsed.data || {};
+      const slug = String(fm.slug || file.replace(/\.md$/, ''));
+      const title = String(fm.title || '');
+      const description = String(fm.description || '');
+      const h1 = String(fm.h1 || title);
+      const author = String(fm.author || 'The Bottom Line Team');
+      // YAML date literals (`datePublished: 2026-04-29`) are parsed by gray-matter
+      // into JS Date objects, whose default toString is verbose and not ISO 8601.
+      // Normalize Dates to YYYY-MM-DD; pass strings through verbatim.
+      const toIsoDate = v => (v instanceof Date ? v.toISOString().slice(0, 10) : v ? String(v) : '');
+      const datePublished = toIsoDate(fm.datePublished);
+      const dateModified = toIsoDate(fm.dateModified);
+      const image = String(fm.image || `${SITE_URL}/og-cover.jpg`);
+      const excerpt = String(fm.excerpt || description);
+
+      if (!slug || !title || !description || !datePublished) {
+        throw new Error(
+          `prerender: ${filePath} missing required frontmatter (slug/title/description/datePublished).`,
+        );
+      }
+      // Validate ISO date format so a typo doesn't ship as an invalid Article schema.
+      if (!/^\d{4}-\d{2}-\d{2}/.test(datePublished)) {
+        throw new Error(
+          `prerender: ${filePath} datePublished "${datePublished}" is not ISO 8601 (YYYY-MM-DD).`,
+        );
+      }
+
+      return {
+        slug,
+        title,
+        description,
+        h1,
+        author,
+        datePublished,
+        dateModified,
+        image,
+        excerpt,
+        bodyHtml: md.render(parsed.content || ''),
+        route: `/blog/${slug}/`,
+        url: `${SITE_URL}/blog/${slug}/`,
+      };
+    })
+    .sort((a, b) => b.datePublished.localeCompare(a.datePublished));
+
+  return posts;
+}
+
+/**
+ * Emit each blog post at /blog/<slug>/ with Article + Organization +
+ * BreadcrumbList JSON-LD. Returns the list of emitted routes.
+ */
+function emitBlogPosts(split, posts) {
+  const emitted = [];
+
+  for (const post of posts) {
+    const formattedDate = (() => {
+      const d = new Date(post.datePublished);
+      return isNaN(d.valueOf())
+        ? post.datePublished
+        : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    })();
+
+    const mainHtml = [
+      '<div class="container" style="padding-top: 120px; padding-bottom: 80px; max-width: 760px;">',
+      '  <article class="prose blog-post">',
+      '    <nav class="breadcrumbs" aria-label="Breadcrumb" style="margin-bottom: 1.5rem; font-size: 0.9rem;">',
+      `      <a href="/">Home</a> › <a href="/blog/">Blog</a> › <span>${escapeHtmlText(post.title)}</span>`,
+      '    </nav>',
+      `    <h1>${escapeHtmlText(post.h1)}</h1>`,
+      '    <p class="blog-meta" style="color: #888; margin-bottom: 2rem; font-size: 0.95rem;">',
+      `      By ${escapeHtmlText(post.author)} · <time datetime="${escapeAttr(post.datePublished)}">${escapeHtmlText(formattedDate)}</time>`,
+      '    </p>',
+      post.bodyHtml,
+      '  </article>',
+      '</div>',
+    ].join('\n');
+
+    const crumbs = [
+      { name: 'Home', url: `${SITE_URL}/` },
+      { name: 'Blog', url: `${SITE_URL}/blog/` },
+      { name: post.title, url: post.url },
+    ];
+
+    const schemaJsonLd = [
+      organizationSchema(),
+      breadcrumbSchema(crumbs),
+      articleSchema({
+        url: post.url,
+        title: post.title,
+        description: post.description,
+        image: post.image,
+        author: post.author,
+        datePublished: post.datePublished,
+        dateModified: post.dateModified || post.datePublished,
+      }),
+    ];
+
+    emitRoute(
+      post.route,
+      {
+        dataRoute: 'article',
+        title: `${post.title} | Bottom Line Apparel`,
+        description: post.description,
+        mainHtml,
+        schemaJsonLd,
+      },
+      split,
+    );
+    emitted.push(post.route);
+    console.log(`prerender: emitted dist${post.route}index.html`);
+  }
+
+  return emitted;
+}
+
+/**
+ * Emit /blog/ index page listing all posts newest-first. The list itself
+ * is plain HTML (no client hydration needed); links to each post pick up
+ * normal `<a href>` crawl flow.
+ */
+function emitBlogIndex(split, posts) {
+  const items = posts
+    .map(post => {
+      const formattedDate = (() => {
+        const d = new Date(post.datePublished);
+        return isNaN(d.valueOf())
+          ? post.datePublished
+          : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      })();
+      return [
+        '      <li class="blog-index__item" style="margin-bottom: 2.5rem;">',
+        `        <h2 style="margin-bottom: 0.5rem;"><a href="${escapeAttr(post.route)}">${escapeHtmlText(post.title)}</a></h2>`,
+        `        <p class="blog-meta" style="color: #888; margin-bottom: 0.75rem; font-size: 0.9rem;">By ${escapeHtmlText(post.author)} · <time datetime="${escapeAttr(post.datePublished)}">${escapeHtmlText(formattedDate)}</time></p>`,
+        `        <p>${escapeHtmlText(post.excerpt || post.description)}</p>`,
+        `        <p><a href="${escapeAttr(post.route)}" class="blog-index__readmore">Read more →</a></p>`,
+        '      </li>',
+      ].join('\n');
+    })
+    .join('\n');
+
+  const mainHtml = [
+    '<div class="container" style="padding-top: 120px; padding-bottom: 80px; max-width: 760px;">',
+    '  <article class="prose">',
+    '    <h1>From the Bottom Line</h1>',
+    '    <p>Notes on queer visibility, NYC apparel, the gay men who wear our drops, and how we make what we make. New posts roughly weekly.</p>',
+    posts.length === 0
+      ? '    <p><em>No posts yet — check back soon.</em></p>'
+      : `    <ul class="blog-index" style="list-style: none; padding: 0; margin-top: 3rem;">\n${items}\n    </ul>`,
+    '  </article>',
+    '</div>',
+  ].join('\n');
+
+  const crumbs = [
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Blog', url: `${SITE_URL}/blog/` },
+  ];
+
+  const schemaJsonLd = [organizationSchema(), breadcrumbSchema(crumbs)];
+
+  const route = '/blog/';
+  emitRoute(
+    route,
+    {
+      dataRoute: 'blog-index',
+      title: 'Blog | Bottom Line Apparel',
+      description: 'Notes on queer visibility, NYC apparel, gay style, and how we make what we make at Bottom Line Apparel.',
+      mainHtml,
+      schemaJsonLd,
+    },
+    split,
+  );
+  console.log(`prerender: emitted dist${route}index.html`);
+  return route;
+}
+
 async function main() {
   const shell = readShell();
   const split = splitShell(shell);
@@ -603,7 +802,18 @@ async function main() {
   const collectionRoutes = emitCollectionPages(split, groupedProducts, slugIndex);
   const productRoutes = emitProductPages(allProds, split, slugIndex);
 
-  const routes = ['/', ...contentRoutes, ...collectionRoutes, ...productRoutes];
+  const blogPosts = loadBlogPosts();
+  const blogPostRoutes = emitBlogPosts(split, blogPosts);
+  const blogIndexRoute = blogPosts.length > 0 ? emitBlogIndex(split, blogPosts) : null;
+
+  const routes = [
+    '/',
+    ...contentRoutes,
+    ...collectionRoutes,
+    ...productRoutes,
+    ...(blogIndexRoute ? [blogIndexRoute] : []),
+    ...blogPostRoutes,
+  ];
   emitRobots();
   emitSitemap(routes);
   console.log(`prerender: emitted dist/robots.txt and dist/sitemap.xml (${routes.length} URL${routes.length === 1 ? '' : 's'}).`);
