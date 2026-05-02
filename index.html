@@ -116,11 +116,13 @@
   </div>
 
   <!--
-    Global looping video background.
-    Deferred load: src is hydrated by initVideoAutoplay() after first paint
-    so it does not block LCP. preload="none" prevents byte fetch until then.
+    Global looping video background — 5-clip playlist that cycles in sequence.
+    initVideoAutoplay() reads data-playlist, hydrates the first clip on idle,
+    then advances on `ended` and wraps back to clip 1 after clip 5.
+    No `loop` attribute: looping happens at the playlist boundary, not per-clip.
+    preload="none" prevents byte fetch until idle.
   -->
-  <video class="global-video-bg" data-src="video_4.mp4" preload="none" loop muted playsinline aria-hidden="true"></video>
+  <video class="global-video-bg" data-playlist="video_part_1.mp4,video_part_2.mp4,video_part_3.mp4,video_4.mp4,Video_Clip_of_Men_Flirting.mp4" preload="none" muted playsinline aria-hidden="true"></video>
 
   <!-- ═══════════════════ STICKY CART BAR ═══════════════════ -->
   <div class="sticky-cart" id="sticky-cart" aria-label="Quick add to cart" role="complementary">
