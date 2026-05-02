@@ -1,13 +1,5 @@
 {
   "trailingSlash": true,
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.bottomlineapparel.com" }],
-      "destination": "https://bottomlineapparel.com/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/products",

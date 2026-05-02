@@ -10,7 +10,7 @@
 // fake address data to Google's structured-data parser would be worse than
 // emitting nothing.
 
-const SITE_URL = 'https://bottomlineapparel.com';
+const SITE_URL = 'https://www.bottomlineapparel.store';
 
 /**
  * Organization schema describing Bottom Line Apparel as the publisher.
@@ -32,8 +32,8 @@ export function organizationSchema() {
  * BreadcrumbList schema. Positions are 1-indexed per schema.org spec.
  *
  * @param {{name: string, url: string}[]} crumbs
- *   e.g. [{name:'Home', url:'https://bottomlineapparel.com/'},
- *         {name:'About', url:'https://bottomlineapparel.com/about/'}]
+ *   e.g. [{name:'Home', url:'https://www.bottomlineapparel.store/'},
+ *         {name:'About', url:'https://www.bottomlineapparel.store/about/'}]
  */
 export function breadcrumbSchema(crumbs) {
   if (!Array.isArray(crumbs) || crumbs.length === 0) {
