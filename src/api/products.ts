@@ -16,6 +16,7 @@ export interface Variant {
 export interface Product {
     id: number;
     title: string;
+    slug?: string;
     short_description: string;
     min_price: number;
     max_price: number;
@@ -26,6 +27,25 @@ export interface Product {
 
 export let allProducts: Record<string, Product[]> = {};
 
+declare global {
+  interface Window {
+    slugIndex?: Record<string, { slug: string; title: string; image: string }>;
+  }
+}
+
+// The slug map is { id: { slug, title, image } } both at build time
+// (passed in from prerender) and at runtime (loaded from
+// /products/_index.json into window.slugIndex). The renderers used to
+// template-interpolate the entry directly, which produced
+// `/products/[object Object]/`. Always extract `.slug` here.
+type SlugMap = Record<string, { slug: string } | undefined>;
+
+function pickHref(product: Product, slugIndex?: SlugMap) {
+  const entry = slugIndex && slugIndex[product.id];
+  const slug = entry?.slug ?? product.slug;
+  return slug ? `/products/${slug}/` : '#';
+}
+
 function priceDisplay(p: Product) {
   if (p.min_price === p.max_price) return `$${p.min_price.toFixed(2)}`;
   return `From $${p.min_price.toFixed(2)}`;
@@ -34,31 +54,34 @@ function priceDisplay(p: Product) {
 /**
  * Render a 3D Orbit Card for T-shirts.
  */
-function renderOrbitCard(product: Product) {
+export function renderOrbitCard(product: Product, slugIndex?: SlugMap) {
+  const href = pickHref(product, slugIndex);
   return `
     <article class="orbit-card reveal"
              data-product-id="${product.id}">
       <div class="orbit-card__inner">
         <!-- Front Face -->
         <div class="orbit-card__front">
-          <div class="orbit-card__img-wrap">
-            <img src="${escapeAttr(product.image)}"
-                 alt="${escapeAttr(product.title)}"
-                 loading="lazy"
-                 width="600"
-                 height="600" />
-          </div>
-          <div class="orbit-card__body">
-            <p class="edition-label">Statement Tee</p>
-            <h3 class="orbit-card__title">${escapeHtml(product.title)}</h3>
-            <p class="orbit-card__desc">${escapeHtml(product.short_description || '')}</p>
-            <div class="orbit-card__footer">
-              <span class="price-display">${priceDisplay(product)}</span>
-              <button class="btn btn--primary orbit-card__cta" type="button"
-                      aria-label="Choose options for ${escapeAttr(product.title)}">
-                Choose Options
-              </button>
+          <a href="${href}" class="orbit-card__link">
+            <div class="orbit-card__img-wrap">
+              <img src="${escapeAttr(product.image)}"
+                   alt="${escapeAttr(product.title)}"
+                   loading="lazy"
+                   width="600"
+                   height="600" />
             </div>
+            <div class="orbit-card__body">
+              <p class="edition-label">Statement Tee</p>
+              <h3 class="orbit-card__title">${escapeHtml(product.title)}</h3>
+              <p class="orbit-card__desc">${escapeHtml(product.short_description || '')}</p>
+            </div>
+          </a>
+          <div class="orbit-card__footer">
+            <span class="price-display">${priceDisplay(product)}</span>
+            <button class="btn btn--primary orbit-card__cta" type="button"
+                    aria-label="Choose options for ${escapeAttr(product.title)}">
+              Choose Options
+            </button>
           </div>
         </div>
         <!-- Back Face -->
@@ -66,7 +89,7 @@ function renderOrbitCard(product: Product) {
           <p class="edition-label">${escapeHtml(product.title)}</p>
           <h4 class="orbit-card__back-title">${priceDisplay(product)}</h4>
           <p class="orbit-card__back-desc">${escapeHtml(product.short_description || '')}</p>
-          <button class="btn btn--primary orbit-card__back-cta" type="button">Choose Options →</button>
+          <button class="btn btn--primary orbit-card__back-cta orbit-card__cta" type="button">Choose Options →</button>
         </div>
       </div>
     </article>`;
@@ -75,17 +98,22 @@ function renderOrbitCard(product: Product) {
 /**
  * Render a standard product card for non-3D items.
  */
-function renderProductCard(product: Product) {
+export function renderProductCard(product: Product, slugIndex?: SlugMap) {
+  const href = pickHref(product, slugIndex);
   return `
     <article class="product-card reveal" data-product-id="${product.id}">
-      <div class="product-card__image">
-        <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="400" height="400" />
-      </div>
-      <div class="product-card__body">
-        <h3 class="product-card__title">${escapeHtml(product.title)}</h3>
-        <p class="product-card__desc">${escapeHtml(product.short_description)}</p>
+      <a href="${href}" class="product-card__link">
+        <div class="product-card__image">
+          <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="400" height="400" />
+        </div>
+        <div class="product-card__body">
+          <h3 class="product-card__title">${escapeHtml(product.title)}</h3>
+          <p class="product-card__desc">${escapeHtml(product.short_description)}</p>
+        </div>
+      </a>
+      <div class="product-card__footer">
         <span class="price-display">${priceDisplay(product)}</span>
-        <button class="btn btn--secondary product-card__btn" type="button">Choose Options →</button>
+        <button class="btn btn--secondary product-card__btn orbit-card__cta" type="button">Choose Options →</button>
       </div>
     </article>`;
 }
@@ -93,21 +121,26 @@ function renderProductCard(product: Product) {
 /**
  * Render an accessory card.
  */
-function renderAccessoryCard(product: Product) {
+export function renderAccessoryCard(product: Product, slugIndex?: SlugMap) {
+  const href = pickHref(product, slugIndex);
   return `
     <article class="accessory-card reveal" data-product-id="${product.id}">
-      <div class="accessory-card__image">
-        <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="300" height="300" />
-      </div>
-      <div class="accessory-card__body">
-        <h3 class="accessory-card__title">${escapeHtml(product.title)}</h3>
+      <a href="${href}" class="accessory-card__link">
+        <div class="accessory-card__image">
+          <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="300" height="300" />
+        </div>
+        <div class="accessory-card__body">
+          <h3 class="accessory-card__title">${escapeHtml(product.title)}</h3>
+        </div>
+      </a>
+      <div class="accessory-card__footer">
         <span class="price-display">${priceDisplay(product)}</span>
-        <button class="btn btn--ghost accessory-card__btn" type="button">View Details</button>
+        <button class="btn btn--ghost accessory-card__btn orbit-card__cta" type="button">View Details</button>
       </div>
     </article>`;
 }
 
-type RenderFn = (p: Product) => string;
+type RenderFn = (p: Product, slugIndex?: SlugMap) => string;
 
 const CATEGORY_RENDER: Record<string, { renderer: RenderFn; titleId?: string }> = {
   tshirts:     { renderer: renderOrbitCard },
@@ -140,16 +173,24 @@ export async function loadProducts() {
   }
 
   try {
-    const res = await fetch('/api/products');
+    const [res, slugRes] = await Promise.all([
+      fetch('/api/products'),
+      fetch('/products/_index.json').catch(() => null)
+    ]);
     if (!res.ok) throw new Error('API unavailable');
     allProducts = await res.json();
+    if (slugRes && slugRes.ok) {
+      window.slugIndex = await slugRes.json();
+    } else {
+      window.slugIndex = {};
+    }
 
     for (const [cat, { renderer, titleId }] of Object.entries(CATEGORY_RENDER)) {
       const grid = grids[cat];
       const items = allProducts[cat] || [];
-      if (!grid) continue;
+      if (!grid || grid.children.length > 0) continue;
 
-      grid.innerHTML = items.map(renderer).join('');
+      grid.innerHTML = items.map((p) => renderer(p, window.slugIndex)).join('');
 
       if (titleId) {
         const title = document.getElementById(titleId);
@@ -171,8 +212,12 @@ export async function loadProducts() {
 }
 
 function attachProductListeners() {
-    document.querySelectorAll('.orbit-card, .product-card, .accessory-card').forEach(el => {
-        el.addEventListener('click', () => {
+    document.querySelectorAll('.orbit-card__cta').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const el = (e.target as HTMLElement).closest('.orbit-card, .product-card, .accessory-card');
+            if (!el) return;
             const productId = (el as HTMLElement).dataset.productId;
             const product = findProductById(productId!);
             if (product) {

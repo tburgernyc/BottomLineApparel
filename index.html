@@ -47,8 +47,9 @@
     "sameAs": ["https://www.tiktok.com/@bottomlineapparel"]
   }
   </script>
+<!-- PRERENDER:HEAD -->
 </head>
-<body>
+<body data-route="home">
 
   <!-- Skip to content removed as per user request -->
   <!-- Announcement / free-shipping bar (text updates dynamically based on cart subtotal) -->
@@ -67,10 +68,13 @@
       </a>
 
       <nav class="nav-links" id="nav-links" aria-label="Primary navigation">
-        <a href="#tshirts">Shop</a>
-        <a href="#material">The Craft</a>
-        <a href="#story">Stories</a>
-        <a href="#join">Join</a>
+        <a href="/#tshirts">Shop</a>
+        <a href="/#material">The Craft</a>
+        <a href="/#story">Stories</a>
+        <a href="/about/">About</a>
+        <a href="/blog/">Blog</a>
+        <a href="/faq/">FAQ</a>
+        <a href="/#join">Join</a>
       </nav>
 
       <div class="header-actions">
@@ -222,7 +226,7 @@
 
 
     <section class="tshirts-showcase" id="tshirts" style="position: relative; overflow: hidden; padding-top: 120px; padding-bottom: 80px;">
-      <video class="hero-video" src="video_part_1.mp4" autoplay loop muted playsinline aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; filter: brightness(0.5);"></video>
+      <video class="hero-video" data-src="video_part_1.mp4" preload="none" loop muted playsinline aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; filter: brightness(0.5);"></video>
       <div class="container" style="position: relative; z-index: 1;">
         <h1 class="hero-headline lux-title reveal">Your Ass Deserves<br />a Punchline.</h1>
         <p class="edition-label reveal">The Collection</p>
@@ -397,13 +401,13 @@
         <h2 class="section-title reveal">The Vibe Check</h2>
         <div class="campaign-grid">
           <div class="campaign-card">
-            <video class="campaign-video" src="video_part_1.mp4" autoplay loop muted playsinline aria-label="Bottom Line Apparel campaign clip 1"></video>
+            <video class="campaign-video" data-src="video_part_1.mp4" data-lazy="visible" preload="none" loop muted playsinline aria-label="Bottom Line Apparel campaign clip 1"></video>
           </div>
           <div class="campaign-card">
-            <video class="campaign-video" src="video_part_2.mp4" autoplay loop muted playsinline aria-label="Bottom Line Apparel campaign clip 2"></video>
+            <video class="campaign-video" data-src="video_part_2.mp4" data-lazy="visible" preload="none" loop muted playsinline aria-label="Bottom Line Apparel campaign clip 2"></video>
           </div>
           <div class="campaign-card">
-            <video class="campaign-video" src="video_part_3.mp4" autoplay loop muted playsinline aria-label="Bottom Line Apparel campaign clip 3"></video>
+            <video class="campaign-video" data-src="video_part_3.mp4" data-lazy="visible" preload="none" loop muted playsinline aria-label="Bottom Line Apparel campaign clip 3"></video>
           </div>
         </div>
       </div>
@@ -554,6 +558,7 @@
       </div>
     </section>
 
+<!-- PRERENDER:MAIN -->
 </main>
 
   <!-- ═══════════════════ FOOTER ═══════════════════ -->
@@ -566,6 +571,16 @@
         <text x="0" y="60" fill="currentColor" font-family="'Oswald', 'Impact', sans-serif" font-weight="500" font-size="16" letter-spacing="4">LINE APPAREL</text>
       </svg>
       <p class="footer-tagline">Your Ass Deserves a Punchline.</p>
+      <nav class="footer-help" aria-label="Help and company">
+        <p class="footer-help__heading">Help &amp; Info</p>
+        <ul class="footer-help__list">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/faq/">FAQ</a></li>
+          <li><a href="/shipping-returns/">Shipping &amp; Returns</a></li>
+          <li><a href="/size-guide/">Size Guide</a></li>
+        </ul>
+      </nav>
       <p>&copy; <span id="footer-year"></span> Bottom Line Apparel &middot; NYC &middot; <a href="https://tiktok.com/@bottomlineapparel" target="_blank" rel="noopener noreferrer">TikTok</a></p>
       <nav class="footer-legal" aria-label="Legal links">
         <a href="/privacy">Privacy Policy</a>
@@ -656,7 +671,9 @@
     no ghost events fire in dev/staging.
   -->
   <script>
+    // PR1[GA4]: replace with real Measurement ID before going live
     window.BLA_GA_ID        = 'G-XXXXXXXXXX';   // GA4 Measurement ID
+    // PR1[PIXELS]: paste real TikTok and Meta pixel IDs before going live
     window.BLA_TTQ_ID       = '';               // TikTok Pixel ID (or leave blank)
     window.BLA_META_ID      = '';               // Meta Pixel ID (or leave blank)
   </script>
