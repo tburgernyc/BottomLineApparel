@@ -5,7 +5,7 @@ description: "What gay men in New York are actually wearing right now — by nei
 h1: "Gay NYC Style: A Field Guide to 2026"
 author: "The Bottom Line Team"
 datePublished: 2026-04-29
-image: https://bottomlineapparel.com/og-cover.jpg
+image: https://www.bottomlineapparel.store/og-cover.jpg
 excerpt: "Hell's Kitchen, Bushwick, the West Village, Fire Island. What gay New York is actually wearing in 2026, broken out by neighborhood and occasion."
 ---
 

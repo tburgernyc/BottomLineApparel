@@ -5,7 +5,7 @@ description: "Where 'The Climber' came from, why we kept the typography delibera
 h1: "The Story Behind 'The Climber' Tee — Designer's Notes"
 author: "The Bottom Line Team"
 datePublished: 2026-04-08
-image: https://bottomlineapparel.com/og-cover.jpg
+image: https://www.bottomlineapparel.store/og-cover.jpg
 excerpt: "How a 2am group-chat exchange about social ambition turned into one of our flagship statement tees, and the design choices we made along the way."
 ---
 

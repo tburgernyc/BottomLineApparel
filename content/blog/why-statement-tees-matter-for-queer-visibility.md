@@ -5,7 +5,7 @@ description: "Statement tees aren't just fabric. They're a half-century of queer
 h1: "Why Statement Tees Matter for Queer Visibility"
 author: "The Bottom Line Team"
 datePublished: 2026-04-15
-image: https://bottomlineapparel.com/og-cover.jpg
+image: https://www.bottomlineapparel.store/og-cover.jpg
 excerpt: "From the Castro to TikTok, statement tees turned queer survival into a daily public practice. Here's why we still print them."
 ---
 

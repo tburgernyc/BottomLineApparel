@@ -19,7 +19,7 @@ import { organizationSchema, breadcrumbSchema, faqSchema, productSchema, article
 import { getProductsData } from '../api/products.js';
 import { renderOrbitCard, renderProductCard, renderAccessoryCard } from './_card-renderers.mjs';
 
-const SITE_URL = 'https://bottomlineapparel.com';
+const SITE_URL = 'https://www.bottomlineapparel.store';
 const DIST = 'dist';
 const SHELL_PATH = join(DIST, 'index.html');
 const CONTENT_PAGES_DIR = 'content/pages';

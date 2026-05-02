@@ -5,7 +5,7 @@ description: "Print-on-demand isn't a shortcut — it's a deliberate choice. Her
 h1: "How We Print: Inside Bottom Line Apparel's Material Story"
 author: "The Bottom Line Team"
 datePublished: 2026-04-22
-image: https://bottomlineapparel.com/og-cover.jpg
+image: https://www.bottomlineapparel.store/og-cover.jpg
 excerpt: "Why Bottom Line Apparel is print-on-demand, what fabrics we actually use, and how an order goes from your cart to your front door without a warehouse in the middle."
 ---
 
