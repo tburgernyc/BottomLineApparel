@@ -19,6 +19,7 @@ let fuse: Fuse<Product> | null = null;
 let activeIndex = -1;
 let lastResults: Product[] = [];
 let hydratePromise: Promise<void> | null = null;
+let fetchFailed = false;
 
 const FUSE_OPTS = {
     keys: [
@@ -50,9 +51,14 @@ function ensureHydrated(): Promise<void> {
         hydratePromise = Promise.resolve();
         return hydratePromise;
     }
-    hydratePromise = loadProducts().then(() => {
-        fuse = null;
-    });
+    hydratePromise = loadProducts()
+        .then(() => {
+            fuse = null;
+            fetchFailed = false;
+        })
+        .catch(() => {
+            fetchFailed = true;
+        });
     return hydratePromise;
 }
 
@@ -60,7 +66,11 @@ function renderResults(results: Product[]) {
     const wrap = document.getElementById('search-results');
     if (!wrap) return;
     if (!results.length) {
-        wrap.innerHTML = `<p class="search-overlay__empty">No matches. Try "tee", "hoodie", or "phone case".</p>`;
+        if (fetchFailed) {
+            wrap.innerHTML = `<p class="search-overlay__empty">Couldn\u2019t load products \u2014 refresh and try again.</p>`;
+        } else {
+            wrap.innerHTML = `<p class="search-overlay__empty">No matches. Try \u201ctee\u201d, \u201choodie\u201d, or \u201cphone case\u201d.</p>`;
+        }
         return;
     }
     wrap.innerHTML = results.map((p, i) => `
@@ -99,7 +109,12 @@ async function performSearch(query: string) {
     }
     await ensureHydrated();
     if (!fuse) buildIndex();
-    if (!fuse) return;
+    if (!fuse) {
+        // Still no index — fetch failed
+        lastResults = [];
+        renderResults([]);
+        return;
+    }
     const hits = fuse.search(query, { limit: 8 }).map(r => r.item);
     lastResults = hits;
     activeIndex = -1;

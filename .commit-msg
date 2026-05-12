@@ -1,0 +1,11 @@
+feat: PR 4 - SEO-optimized Product Detail Pages (PDP)
+
+- Prerender 26 standalone PDPs with dynamic routing (/products/<slug>/)
+- Maintain robust slug index (dist/products/_index.json) for cross-build stability
+- Backfill collection pages with fully hydrated PR 3 anchors
+- Author 26 high-volume (250+ word) SEO descriptions in content/products
+- Backfill 9 collection introductions to 150-300 words
+- Add Product and Offer JSON-LD schema blocks avoiding FTC risk on fabricated ratings
+- Wire src/main.ts for client-side modal instantiation via data-route="product"
+
+Co-Authored-By: Antigravity <antigravity@google.com>

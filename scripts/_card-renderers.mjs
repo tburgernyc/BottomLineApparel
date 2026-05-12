@@ -13,7 +13,8 @@ export function renderOrbitCard(product, slugIndex) {
   const href = slug ? `/products/${slug}/` : '#';
   return `
     <article class="orbit-card reveal"
-             data-product-id="${product.id}">
+             data-product-id="${product.id}"
+             data-card="orbit">
       <div class="orbit-card__inner">
         <!-- Front Face -->
         <div class="orbit-card__front">
@@ -54,7 +55,7 @@ export function renderProductCard(product, slugIndex) {
   const slug = slugIndex ? slugIndex[product.id]?.slug : product.slug;
   const href = slug ? `/products/${slug}/` : '#';
   return `
-    <article class="product-card reveal" data-product-id="${product.id}">
+    <article class="product-card reveal" data-product-id="${product.id}" data-card="product">
       <a href="${href}" class="product-card__link">
         <div class="product-card__image">
           <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="400" height="400" />
@@ -75,13 +76,14 @@ export function renderAccessoryCard(product, slugIndex) {
   const slug = slugIndex ? slugIndex[product.id]?.slug : product.slug;
   const href = slug ? `/products/${slug}/` : '#';
   return `
-    <article class="accessory-card reveal" data-product-id="${product.id}">
+    <article class="accessory-card reveal" data-product-id="${product.id}" data-card="accessory">
       <a href="${href}" class="accessory-card__link">
         <div class="accessory-card__image">
           <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="300" height="300" />
         </div>
         <div class="accessory-card__body">
           <h3 class="accessory-card__title">${escapeHtml(product.title)}</h3>
+          <p class="accessory-card__desc">${escapeHtml(product.short_description || '')}</p>
         </div>
       </a>
       <div class="accessory-card__footer">

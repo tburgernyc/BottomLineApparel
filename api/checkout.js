@@ -13,6 +13,12 @@ const PRINTFUL_BASE = 'https://api.printful.com';
 const MAX_QUANTITY = 10;
 const MAX_LINE_ITEMS = 20;
 const ALLOWED_COUNTRIES = ['US', 'CA', 'GB', 'AU'];
+// Cart total threshold above which the brand absorbs shipping. Mirrors
+// FREE_SHIPPING_THRESHOLD in src/cart/state.ts — keep both in sync.
+const FREE_SHIPPING_THRESHOLD_CENTS = 7500;
+// Cap to protect against tampered/runaway shipping rate values from the client.
+// Real Printful rates max around $40 to AU; this is a hard ceiling, not a target.
+const MAX_SHIPPING_CENTS = 9999;
 // Pin so Stripe can't auto-upgrade event/object schemas under us.
 const STRIPE_API_VERSION = '2024-10-28.acacia';
 const PRINTFUL_FETCH_TIMEOUT_MS = 8000;
@@ -20,6 +26,9 @@ const PRINTFUL_FETCH_TIMEOUT_MS = 8000;
 // 'card' covers all major card brands; 'link' is Stripe's saved-card wallet;
 // 'klarna' enables BNPL for apparel (mainstream in 2026).
 const PAYMENT_METHOD_TYPES = ['card', 'link', 'klarna'];
+// Stripe Tax product tax code for apparel.
+// See https://docs.stripe.com/tax/tax-codes — txcd_30060003 = "Clothing — General".
+const APPAREL_TAX_CODE = 'txcd_30060003';
 
 function pfHeaders() {
   const headers = {
@@ -57,6 +66,69 @@ function extractVariantInfo(rawLabel) {
   if (!rawLabel) return '';
   const m = rawLabel.match(/\(([^()]+)\)\s*$/);
   return m ? m[1].trim() : rawLabel.trim();
+}
+
+// Build the Stripe shipping_options array for the session. The frontend has
+// already collected the customer's country/ZIP and queried Printful for a real
+// rate, so we trust the rate it passes back — but we still cap the value and
+// override to free when the subtotal crosses the threshold.
+function buildShippingOptions(rate, subtotalCents) {
+  const freeOption = {
+    shipping_rate_data: {
+      type: 'fixed_amount',
+      fixed_amount: { amount: 0, currency: 'usd' },
+      display_name: 'Free standard shipping',
+      delivery_estimate: {
+        minimum: { unit: 'business_day', value: 5 },
+        maximum: { unit: 'business_day', value: 12 },
+      },
+      tax_behavior: 'exclusive',
+    },
+  };
+
+  if (subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS) {
+    return [freeOption];
+  }
+
+  if (!rate) {
+    // No rate quoted (legacy single-variant callers, or the cart drawer hasn't
+    // yet collected an address). Fall back to a single free option so the
+    // session creates — Stripe Checkout will show it as free.
+    return [freeOption];
+  }
+
+  const amount = Math.max(0, Math.min(MAX_SHIPPING_CENTS, Math.round(Number(rate.amount_cents) || 0)));
+  const name = String(rate.name || 'Standard shipping').slice(0, 80);
+  const min = Number.isFinite(rate.min_delivery_days) ? Math.max(1, rate.min_delivery_days) : 3;
+  const max = Number.isFinite(rate.max_delivery_days) ? Math.max(min, rate.max_delivery_days) : 8;
+
+  return [
+    {
+      shipping_rate_data: {
+        type: 'fixed_amount',
+        fixed_amount: { amount, currency: 'usd' },
+        display_name: name,
+        delivery_estimate: {
+          minimum: { unit: 'business_day', value: min },
+          maximum: { unit: 'business_day', value: max },
+        },
+        tax_behavior: 'exclusive',
+      },
+    },
+  ];
+}
+
+function normalizeShippingRate(body) {
+  const r = body.shipping_rate;
+  if (!r || typeof r !== 'object') return null;
+  const amount = Number(r.amount_cents);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return {
+    amount_cents: amount,
+    name: String(r.name || 'Standard shipping'),
+    min_delivery_days: Number(r.min_delivery_days) || null,
+    max_delivery_days: Number(r.max_delivery_days) || null,
+  };
 }
 
 function normalizeRequestedItems(body) {
@@ -97,6 +169,7 @@ export default async function handler(req, res) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: STRIPE_API_VERSION });
   const body = req.body || {};
   const requested = normalizeRequestedItems(body);
+  const shippingRate = normalizeShippingRate(body);
 
   if (!requested.length) {
     return res.status(400).json({ error: 'invalid_line_items' });
@@ -119,6 +192,7 @@ export default async function handler(req, res) {
 
   const stripeLineItems = [];
   const metadataItems = [];
+  let subtotalCents = 0;
 
   for (const { req: li, info } of resolved) {
     if (!info) {
@@ -150,8 +224,12 @@ export default async function handler(req, res) {
         product_data: {
           name: fullName.slice(0, 250),
           images: image ? [image] : undefined,
+          tax_code: APPAREL_TAX_CODE,
         },
         unit_amount: priceCents,
+        // Required when Stripe Tax is enabled. 'exclusive' = tax added on top
+        // of the displayed retail price (standard US apparel pricing).
+        tax_behavior: 'exclusive',
       },
       quantity: li.quantity,
     });
@@ -160,9 +238,10 @@ export default async function handler(req, res) {
       sync_variant_id: li.sync_variant_id,
       quantity: li.quantity,
     });
+    subtotalCents += priceCents * li.quantity;
   }
 
-  const baseUrl = req.headers.origin || `https://${req.headers.host || 'bottom-line-apparel-1p4z.vercel.app'}`;
+  const baseUrl = req.headers.origin || `https://${req.headers.host || 'www.bottomlineapparel.store'}`;
 
   // Pack the order's items into a single metadata field for the webhook to
   // replay. Stripe metadata values are capped at 500 chars, so we serialize
@@ -190,6 +269,10 @@ export default async function handler(req, res) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      // Persist a Customer record with the collected billing/shipping address.
+      // Required by Stripe's recommended Tax integration for anonymous checkouts
+      // and lets the webhook + future Klaviyo/loyalty flows read session.customer.
+      customer_creation: 'always',
       payment_method_types: PAYMENT_METHOD_TYPES,
       // Express checkout button (Apple Pay / Google Pay / Link) — Stripe
       // surfaces these automatically when the buyer's device supports them.
@@ -198,10 +281,16 @@ export default async function handler(req, res) {
       shipping_address_collection: {
         allowed_countries: ALLOWED_COUNTRIES,
       },
+      // Pre-locked from the drawer's ZIP/country query against Printful. If
+      // the customer's subtotal crosses the free-shipping threshold, this is
+      // overridden to a single $0 option regardless of the rate they were shown.
+      shipping_options: buildShippingOptions(shippingRate, subtotalCents),
       phone_number_collection: { enabled: true },
       // Allow promo codes — required surface for any future Klaviyo / loyalty flow.
       allow_promotion_codes: true,
-      automatic_tax: { enabled: false },
+      // Requires Stripe Tax to be activated in the Stripe Dashboard and
+      // at least one tax registration on file. See docs/STRIPE_PRINTFUL_SETUP.md.
+      automatic_tax: { enabled: true },
       metadata: {
         printful_items_json: itemsForMeta,
         printful_total_qty: String(metadataItems.reduce((s, i) => s + i.quantity, 0)),

@@ -187,26 +187,33 @@ export function shapeVariant(syncVariant) {
   };
 }
 
+// Returns { product, reason }. `product` is null when the item is dropped;
+// `reason` is a short machine-readable string identifying why so callers can
+// log/diagnose silently-filtered items.
 export function shapeProduct(syncProduct, syncVariants) {
   const enabled = (syncVariants || []).filter(v => v.is_enabled !== false && !v.is_ignored);
-  if (!enabled.length) return null;
+  if (!enabled.length) return { product: null, reason: 'all_variants_ignored' };
 
   const variants = enabled.map(shapeVariant).filter(v => v.price !== null);
-  if (!variants.length) return null;
+  if (!variants.length) return { product: null, reason: 'no_price' };
 
   const prices = variants.map(v => v.price);
+  const image = bestProductImage(syncProduct, syncVariants);
+  if (!image) return { product: null, reason: 'no_image' };
+
   return {
-    id: syncProduct.id,
-    // Printful catalog titles can carry trailing whitespace / tabs; trim so
-    // the slug index, JSON-LD, and rendered HTML don't ship "Title\t".
-    title: String(syncProduct.name || '').trim(),
-    short_description: extractShortDescription(syncProduct.description || ''),
-    description_html: syncProduct.description || '',
-    description_text: extractDescriptionText(syncProduct.description || ''),
-    min_price: Math.min(...prices),
-    max_price: Math.max(...prices),
-    image: bestProductImage(syncProduct, syncVariants),
-    category: classify(syncProduct.name),
-    variants,
+    product: {
+      id: syncProduct.id,
+      title: String(syncProduct.name || '').trim(),
+      short_description: extractShortDescription(syncProduct.description || ''),
+      description_html: syncProduct.description || '',
+      description_text: extractDescriptionText(syncProduct.description || ''),
+      min_price: Math.min(...prices),
+      max_price: Math.max(...prices),
+      image,
+      category: classify(syncProduct.name),
+      variants,
+    },
+    reason: null,
   };
 }

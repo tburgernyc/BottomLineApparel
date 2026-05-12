@@ -52,13 +52,23 @@ export function initVideoAutoplay() {
         playNext();
     };
 
+    // Mobile + reduced-data + reduced-motion users skip the multi-MB background
+    // playlist entirely. Single hero clips (data-src) still hydrate — they
+    // play once and stop, which is acceptable on mobile.
+    const playlistAllowed = typeof window.matchMedia === 'function'
+        && window.matchMedia('(min-width: 768px)').matches
+        && window.matchMedia('(prefers-reduced-motion: no-preference)').matches
+        && !window.matchMedia('(prefers-reduced-data: reduce)').matches;
+
     const hydrateIdle = () => {
         document
             .querySelectorAll<HTMLVideoElement>('video[data-src]:not([data-lazy="visible"])')
             .forEach(hydrate);
-        document
-            .querySelectorAll<HTMLVideoElement>('video[data-playlist]')
-            .forEach(hydratePlaylist);
+        if (playlistAllowed) {
+            document
+                .querySelectorAll<HTMLVideoElement>('video[data-playlist]')
+                .forEach(hydratePlaylist);
+        }
     };
 
     const observeVisible = () => {

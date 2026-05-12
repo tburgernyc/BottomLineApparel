@@ -3,19 +3,19 @@
  * Image optimization pass.
  *
  * Reads every carousel-*.{png,jpg,jpeg} and lifestyle-*.{png,jpg,jpeg} in the
- * project root and emits two derivatives per source into ./optimized/:
+ * project root and emits responsive AVIF + WebP derivatives at 480/960/1800
+ * widths into ./optimized/:
  *
- *   - <name>.webp  (q=78, ~modern browsers)
- *   - <name>.avif  (q=55, ~best compression)
+ *   - <name>-w480.{webp,avif}
+ *   - <name>-w960.{webp,avif}
+ *   - <name>-w1800.{webp,avif}
+ *   - <name>.{webp,avif}        (legacy alias, equals the 1800w variant)
  *
- * It also resizes anything wider than 1800px down to 1800px wide (carousels
- * never display larger than that in our layout). Originals are left intact.
+ * The legacy unsuffixed file is kept so existing <picture> markup that
+ * doesn't yet use srcset continues to work. Originals are left intact.
  *
  * Run:    npm run optimize:images
- * Output: ./optimized/<name>.{webp,avif}
- *
- * Update HTML to use <picture><source type="image/avif"…><source type="image/webp"…><img …></picture>
- * after running.
+ * Update HTML <source srcset="optimized/carousel-1-w480.avif 480w, ...">
  */
 import { readdir, mkdir, stat } from 'node:fs/promises';
 import { join, parse } from 'node:path';
@@ -23,7 +23,7 @@ import sharp from 'sharp';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const OUT_DIR = join(ROOT, 'optimized');
-const MAX_WIDTH = 1800;
+const WIDTHS = [480, 960, 1800];
 const TARGETS = /^(carousel|lifestyle).*\.(png|jpe?g)$/i;
 
 async function ensureDir(dir) {
@@ -41,21 +41,31 @@ async function processOne(file) {
 
   const base = sharp(src).rotate();
   const meta = await base.metadata();
-  const resized = (meta.width || 0) > MAX_WIDTH
-    ? base.resize({ width: MAX_WIDTH, withoutEnlargement: true })
-    : base;
+  const sourceWidth = meta.width || 0;
 
-  const webpOut = join(OUT_DIR, `${name}.webp`);
-  const avifOut = join(OUT_DIR, `${name}.avif`);
+  const sizeReports = [];
 
-  await resized.clone().webp({ quality: 78, effort: 5 }).toFile(webpOut);
-  await resized.clone().avif({ quality: 55, effort: 6 }).toFile(avifOut);
+  for (const width of WIDTHS) {
+    const resized = sourceWidth > width
+      ? base.clone().resize({ width, withoutEnlargement: true })
+      : base.clone();
+    const webpOut = join(OUT_DIR, `${name}-w${width}.webp`);
+    const avifOut = join(OUT_DIR, `${name}-w${width}.avif`);
+    await resized.clone().webp({ quality: 78, effort: 5 }).toFile(webpOut);
+    await resized.clone().avif({ quality: 55, effort: 6 }).toFile(avifOut);
+    const [w, a] = await Promise.all([stat(webpOut), stat(avifOut)]);
+    sizeReports.push(`w${width}: webp ${fmtKB(w.size)} avif ${fmtKB(a.size)}`);
+  }
 
-  const [w, a] = await Promise.all([stat(webpOut), stat(avifOut)]);
-  const orig = fmtKB(srcStat.size);
-  console.log(
-    `${file}  ${orig.padStart(8)}  →  webp ${fmtKB(w.size).padStart(7)}  avif ${fmtKB(a.size).padStart(7)}`
-  );
+  // Legacy unsuffixed filenames — equal to the 1800w variant. Keeps any old
+  // markup working until every <picture> is migrated.
+  const legacyResized = sourceWidth > 1800
+    ? base.clone().resize({ width: 1800, withoutEnlargement: true })
+    : base.clone();
+  await legacyResized.clone().webp({ quality: 78, effort: 5 }).toFile(join(OUT_DIR, `${name}.webp`));
+  await legacyResized.clone().avif({ quality: 55, effort: 6 }).toFile(join(OUT_DIR, `${name}.avif`));
+
+  console.log(`${file}  ${fmtKB(srcStat.size).padStart(8)}  →  ${sizeReports.join('  ')}`);
 }
 
 async function main() {

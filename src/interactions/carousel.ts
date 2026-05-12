@@ -14,7 +14,7 @@ export function initCarousel() {
 
     const updateCarousel = () => {
         const isMobile = window.innerWidth <= 480;
-        const offsetMultiplier = isMobile ? 110 : 140;
+        const offsetMultiplier = isMobile ? 90 : 140;
 
         slides.forEach((slide: any, index) => {
             slide.classList.remove('active');
@@ -54,14 +54,50 @@ export function initCarousel() {
         updateCarousel(); resetAutoPlay();
     });
 
+    // Touch/pointer swipe — needed for mobile, where mouseenter/leave never
+    // fire and the prev/next buttons are small targets. Threshold guards
+    // against accidental nudges; horizontal-only check lets vertical scroll pass.
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let pointerActive = false;
+    const SWIPE_THRESHOLD = 50;
+
+    carouselTrack.addEventListener('pointerdown', (e: PointerEvent) => {
+        pointerStartX = e.clientX;
+        pointerStartY = e.clientY;
+        pointerActive = true;
+        stopAutoPlay();
+    });
+    const endSwipe = (e: PointerEvent) => {
+        if (!pointerActive) return;
+        pointerActive = false;
+        const dx = e.clientX - pointerStartX;
+        const dy = e.clientY - pointerStartY;
+        // Treat as swipe only if horizontal motion dominates — otherwise the
+        // user is scrolling the page and we shouldn't hijack.
+        if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+            currentIndex = dx < 0
+                ? (currentIndex + 1) % slides.length
+                : (currentIndex - 1 + slides.length) % slides.length;
+            updateCarousel();
+        }
+        resetAutoPlay();
+    };
+    carouselTrack.addEventListener('pointerup', endSwipe);
+    carouselTrack.addEventListener('pointercancel', endSwipe);
+
     slides.forEach((slide, index) => {
-        slide.addEventListener('click', () => {
+        slide.addEventListener('click', (e) => {
+            // Suppress the click that fires at the end of a horizontal swipe
+            // (pointerup → click sequence) so we don't both swipe and snap-to-slide.
+            const me = e as MouseEvent;
+            if (Math.abs(me.clientX - pointerStartX) > 10) return;
             if (currentIndex !== index) { currentIndex = index; updateCarousel(); resetAutoPlay(); }
         });
     });
 
     updateCarousel();
     startAutoPlay();
-    
+
     window.addEventListener('resize', updateCarousel);
 }

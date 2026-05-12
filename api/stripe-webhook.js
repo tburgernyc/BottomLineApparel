@@ -7,6 +7,8 @@
 
 import Stripe from 'stripe';
 import crypto from 'node:crypto';
+import { recordOrderInitial, recordOrderFulfilled, recordOrderFailure, recordEmailSent } from './_orders.js';
+import { sendAdminAlert, sendOrderConfirmation } from './_email.js';
 
 const PRINTFUL_BASE = 'https://api.printful.com';
 // Verify this matches your Stripe Dashboard → Webhooks → endpoint API version.
@@ -126,7 +128,12 @@ async function createPrintfulOrder(session) {
     const retryable = res.status >= 500 || res.status === 429;
     return { ok: false, error: `Printful ${res.status}`, details: data, retryable };
   }
-  return { ok: true, printful_order_id: data.result?.id, status: data.result?.status };
+  return {
+    ok: true,
+    printful_order_id: data.result?.id,
+    status: data.result?.status,
+    external_id: externalId,
+  };
 }
 
 export default async function handler(req, res) {
@@ -164,27 +171,126 @@ export default async function handler(req, res) {
     return res.status(200).json({ acknowledged: true, type: event.type });
   }
 
-  const session = event.data.object;
-  console.log(`[stripe-webhook] session=${session.id}`);
+  const summarySession = event.data.object;
+  console.log(`[stripe-webhook] session=${summarySession.id}`);
 
   // Guard against unpaid sessions. Card flows always arrive 'paid', but adding
   // ACH/wallets later would otherwise let us ship before payment captures.
-  if (session.payment_status !== 'paid') {
-    console.warn(`[stripe-webhook] session ${session.id} not paid (status=${session.payment_status}); skipping fulfillment`);
-    return res.status(200).json({ ok: true, skipped: 'unpaid', payment_status: session.payment_status });
+  if (summarySession.payment_status !== 'paid') {
+    console.warn(`[stripe-webhook] session ${summarySession.id} not paid (status=${summarySession.payment_status}); skipping fulfillment`);
+    return res.status(200).json({ ok: true, skipped: 'unpaid', payment_status: summarySession.payment_status });
   }
+
+  // Re-fetch with line_items expanded so the confirmation email can show what
+  // the customer bought without storing product detail in metadata.
+  let session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(summarySession.id, {
+      expand: ['line_items.data.price.product'],
+    });
+  } catch (err) {
+    console.error('[stripe-webhook] Failed to expand session:', err.message);
+    // Fall back to the unexpanded session — fulfillment can still proceed,
+    // we just won't have rich line-item display in the email.
+    session = summarySession;
+  }
+
+  const items = parseItemsFromMetadata(session.metadata || {});
+  await recordOrderInitial(session, items);
 
   const result = await createPrintfulOrder(session);
   if (!result.ok) {
     console.error('[stripe-webhook] Fulfillment failed:', result.error, result.details || '');
+    await recordOrderFailure(session.id, {
+      error: result.error,
+      retryable: result.retryable,
+      details: result.details,
+    });
     // 5xx/429/network → retryable: return 503 so Stripe redelivers (Printful's
     //   external_id hash dedupes any successful-but-lost responses).
     // 4xx/validation → permanent: 200 to stop Stripe retrying a known-bad order.
     if (result.retryable) {
       return res.status(503).json({ ok: false, ...result });
     }
+    // Permanent failure → customer charged but no order. Alert admin so they
+    // can recreate the order manually in Printful or refund the customer.
+    sendAdminAlert({
+      subject: `[BLA] Fulfillment failed — ${session.id}`,
+      sessionId: session.id,
+      customerEmail: session.customer_details?.email,
+      items,
+      error: result.error,
+      details: result.details,
+    }).then(r => recordEmailSent(session.id, 'admin_alert', r.ok, r.error))
+      .catch(err => console.error('[stripe-webhook] Admin alert dispatch failed:', err?.message || err));
     return res.status(200).json({ ok: false, ...result });
   }
+
   console.log(`[stripe-webhook] Printful order created: ${result.printful_order_id} (${result.status})`);
+  await recordOrderFulfilled(session.id, {
+    printfulOrderId: result.printful_order_id,
+    printfulExternalId: result.external_id,
+  });
+
+  // Fire-and-log customer confirmation. Email failures must not cause webhook
+  // retries — Stripe's automatic receipt is the source of truth for "did the
+  // customer hear back."
+  try {
+    const emailPayload = buildConfirmationPayload(session);
+    const send = await sendOrderConfirmation(session.customer_details?.email, emailPayload);
+    await recordEmailSent(session.id, 'order_confirmation', send.ok, send.error);
+    if (!send.ok && !send.skipped) {
+      console.warn('[stripe-webhook] Order confirmation email failed:', send.error);
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] Order confirmation dispatch crashed:', err?.message || err);
+  }
+
   return res.status(200).json(result);
+}
+
+// Build the data structure the email template expects from a Stripe session.
+function buildConfirmationPayload(session) {
+  const currency = (session.currency || 'usd').toUpperCase();
+  const lineItems = session.line_items?.data || [];
+  const items = lineItems.map(li => {
+    const productName = li.price?.product?.name || li.description || 'Item';
+    const dashIdx = productName.indexOf(' — ');
+    return {
+      title: dashIdx > 0 ? productName.slice(0, dashIdx) : productName,
+      variant_label: dashIdx > 0 ? productName.slice(dashIdx + 3) : '',
+      unit_price_cents: li.price?.unit_amount ?? 0,
+      quantity: li.quantity ?? 1,
+    };
+  });
+
+  const ship = session.shipping_details || {};
+  const shipping = {
+    name: ship.name || session.customer_details?.name || '',
+    line1: ship.address?.line1 || '',
+    line2: ship.address?.line2 || '',
+    city: ship.address?.city || '',
+    state: ship.address?.state || '',
+    postal_code: ship.address?.postal_code || '',
+    country: ship.address?.country || '',
+  };
+
+  // total_details is present when Stripe Tax is enabled or shipping_options are set.
+  const td = session.total_details || {};
+  const shippingCents = session.shipping_cost?.amount_total ?? td.amount_shipping ?? null;
+  const taxCents = td.amount_tax ?? null;
+
+  return {
+    orderNumber: session.id ? session.id.replace(/^cs_(test|live)_/, '').slice(0, 12) : null,
+    items,
+    totals: {
+      subtotal_cents: session.amount_subtotal ?? 0,
+      shipping_cents: shippingCents,
+      shipping_label: session.shipping_cost?.shipping_rate ? null : null,
+      tax_cents: taxCents,
+      total_cents: session.amount_total ?? 0,
+    },
+    shipping,
+    currency,
+  };
 }

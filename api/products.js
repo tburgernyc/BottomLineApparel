@@ -63,7 +63,7 @@ function pfHeaders(apiKey, storeId) {
   return headers;
 }
 
-export async function getProductsData() {
+export async function getProductsData({ collectDrops = false } = {}) {
   const apiKey = process.env.PRINTFUL_API_KEY;
   const storeId = process.env.PRINTFUL_STORE_ID;
 
@@ -72,6 +72,7 @@ export async function getProductsData() {
   }
 
   const headers = pfHeaders(apiKey, storeId);
+  const dropped = collectDrops ? [] : null;
 
   let productList;
   try {
@@ -83,42 +84,52 @@ export async function getProductsData() {
 
   const empty = { tshirts: [], cropTops: [], tanks: [], hoodies: [], bottoms: [], phoneCases: [], headwear: [], footwear: [], accessories: [] };
   if (!productList.length) {
-    return empty;
+    return collectDrops ? { grouped: empty, dropped: [], totalFromList: 0 } : empty;
   }
 
-  // Fetch detailed sync_variants for each product, in parallel chunks
-  let detailedProducts = [];
+  // Fetch detailed sync_variants for each product, in parallel chunks.
+  // Track per-product detail-fetch outcomes so we can report timeouts as drops.
+  const detailedProducts = [];
   const CHUNK_SIZE = 4;
   for (let i = 0; i < productList.length; i += CHUNK_SIZE) {
     const chunk = productList.slice(i, i + CHUNK_SIZE);
     const detailPromises = chunk.map(p =>
       fetchWithRetry(`${PRINTFUL_BASE}/sync/products/${p.id}`, { headers })
-        .then(d => d.result)
-        .catch(err => {
-          console.error(`[api/products] Detail fetch failed for product ${p.id}:`, err.message);
-          return null;
-        })
+        .then(d => ({ id: p.id, name: p.name, detail: d.result, error: null }))
+        .catch(err => ({ id: p.id, name: p.name, detail: null, error: err.message }))
     );
     const results = await Promise.all(detailPromises);
-    detailedProducts.push(...results.filter(Boolean));
+    for (const r of results) {
+      if (r.error || !r.detail) {
+        console.error(`[api/products] DROP id=${r.id} name="${r.name}" reason=detail_fetch_failed err="${r.error || 'no detail'}"`);
+        if (dropped) dropped.push({ id: r.id, name: r.name, reason: 'detail_fetch_failed', error: r.error });
+        continue;
+      }
+      detailedProducts.push(r.detail);
+    }
   }
 
   const grouped = { ...empty };
 
   for (const detail of detailedProducts) {
     if (!detail || !detail.sync_product) continue;
-    const shaped = shapeProduct(detail.sync_product, detail.sync_variants);
-    if (!shaped || !shaped.image) {
-      console.warn(`[api/products] Skipping product ${detail.sync_product.id}: no shaped output or missing image`);
+    const sp = detail.sync_product;
+    const { product, reason } = shapeProduct(sp, detail.sync_variants);
+    if (!product) {
+      console.warn(`[api/products] DROP id=${sp.id} name="${sp.name}" reason=${reason}`);
+      if (dropped) dropped.push({ id: sp.id, name: sp.name, reason });
       continue;
     }
-    if (grouped[shaped.category]) {
-      grouped[shaped.category].push(shaped);
+    if (grouped[product.category]) {
+      grouped[product.category].push(product);
     } else {
-      grouped.accessories.push(shaped);
+      grouped.accessories.push(product);
     }
   }
 
+  if (collectDrops) {
+    return { grouped, dropped, totalFromList: productList.length };
+  }
   return grouped;
 }
 

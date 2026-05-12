@@ -10,6 +10,7 @@ import { initCountdown } from './interactions/countdown';
 import { initUGCTicker } from './interactions/ticker';
 import { initScrollInteractions } from './interactions/scroll';
 import { initVideoAutoplay } from './interactions/video';
+import { initOrbitCardTapFlip } from './interactions/orbit-cards';
 import { loadProducts } from './api/products';
 import { initAnalytics, completePurchaseIfReturning } from './analytics/analytics';
 import { initCookieConsent } from './ui/cookie-consent';
@@ -22,6 +23,7 @@ import { clear as clearCart } from './cart/state';
 
 import { initSearch } from './ui/search';
 import { openCheckoutModal } from './ui/modals';
+import { initStickyCart } from './ui/sticky-cart';
 
 /**
  * Initialize the Product Detail Page logic.
@@ -90,11 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
         initUGCTicker();   // No-op now that fake UGC is removed; retained for safe boot.
     }
 
+    // Tap-to-flip is a no-op on hover-capable devices; safe to call universally.
+    initOrbitCardTapFlip();
+
     if (isHome || isCollection) {
         // Data hydration. Products power both the grids and the search index.
         // Once loaded, fire one `view_item_list` event per category so GA4 can
         // measure category impressions vs. clicks.
         loadProducts().then(() => {
+            // Initialize sticky cart bar after products are available (home only)
+            if (isHome) initStickyCart();
+
             for (const [category, items] of Object.entries(allProducts)) {
                 if (!items.length) continue;
                 // Only track impression if the category grid is in the DOM

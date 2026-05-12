@@ -58,7 +58,8 @@ export function renderOrbitCard(product: Product, slugIndex?: SlugMap) {
   const href = pickHref(product, slugIndex);
   return `
     <article class="orbit-card reveal"
-             data-product-id="${product.id}">
+             data-product-id="${product.id}"
+             data-card="orbit">
       <div class="orbit-card__inner">
         <!-- Front Face -->
         <div class="orbit-card__front">
@@ -101,7 +102,7 @@ export function renderOrbitCard(product: Product, slugIndex?: SlugMap) {
 export function renderProductCard(product: Product, slugIndex?: SlugMap) {
   const href = pickHref(product, slugIndex);
   return `
-    <article class="product-card reveal" data-product-id="${product.id}">
+    <article class="product-card reveal" data-product-id="${product.id}" data-card="product">
       <a href="${href}" class="product-card__link">
         <div class="product-card__image">
           <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="400" height="400" />
@@ -124,13 +125,14 @@ export function renderProductCard(product: Product, slugIndex?: SlugMap) {
 export function renderAccessoryCard(product: Product, slugIndex?: SlugMap) {
   const href = pickHref(product, slugIndex);
   return `
-    <article class="accessory-card reveal" data-product-id="${product.id}">
+    <article class="accessory-card reveal" data-product-id="${product.id}" data-card="accessory">
       <a href="${href}" class="accessory-card__link">
         <div class="accessory-card__image">
           <img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.title)}" loading="lazy" width="300" height="300" />
         </div>
         <div class="accessory-card__body">
           <h3 class="accessory-card__title">${escapeHtml(product.title)}</h3>
+          <p class="accessory-card__desc">${escapeHtml(product.short_description || '')}</p>
         </div>
       </a>
       <div class="accessory-card__footer">

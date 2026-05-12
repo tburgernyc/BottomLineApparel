@@ -214,11 +214,11 @@ function populateUpsell(currentId: number) {
 
   modalUpsell.hidden = false;
   modalUpsellGrid.innerHTML = candidates.map(p => `
-    <div class="upsell-item" tabindex="0" role="button" data-id="${p.id}">
+    <button type="button" class="upsell-item" data-id="${p.id}">
       <img src="${escapeAttr(p.image)}" alt="${escapeAttr(p.title)}" loading="lazy" width="80" height="80" />
       <span class="upsell-item__name">${escapeHtml(p.title)}</span>
       <span class="upsell-item__price">$${p.min_price.toFixed(2)}</span>
-    </div>
+    </button>
   `).join('');
 
   modalUpsellGrid.querySelectorAll('.upsell-item').forEach(item => {
