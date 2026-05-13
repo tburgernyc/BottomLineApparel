@@ -492,6 +492,7 @@ function classifyShipCalcError(err: any): string {
     if (code === 'invalid_address') return 'We couldn’t find a rate for that address. Double-check the ZIP and try again.';
     if (code === 'unsupported_country') return 'We don’t currently ship to that country.';
     if (code === 'no_rates' || code === 'no_rates_available') return 'No carriers serve that address. Try a different ZIP.';
+    if (code === 'variant_not_found') return 'One of your cart items is no longer available. Remove it and try again.';
     if (code === 'configuration_missing') return 'Shipping calculator is temporarily unavailable.';
     if (!navigator.onLine) return 'You appear to be offline. Check your connection and try again.';
     return 'We couldn’t fetch shipping rates right now. Please try again.';

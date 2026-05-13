@@ -48,6 +48,31 @@ function normalizeLineItems(body) {
     .slice(0, MAX_LINE_ITEMS);
 }
 
+// Printful's /shipping/rates endpoint requires the catalog `variant_id`
+// (e.g. 16359), NOT the store's `sync_variant_id` — passing the latter returns
+// `400 "Missing item variant_id"`. /orders accepts either, which is why
+// checkout works but rates didn't. Resolve sync→catalog ids before calling.
+async function fetchVariantIdForSync(syncVariantId) {
+  let res;
+  try {
+    res = await fetch(`${PRINTFUL_BASE}/sync/variant/${syncVariantId}`, {
+      headers: pfHeaders(),
+      signal: AbortSignal.timeout(PRINTFUL_FETCH_TIMEOUT_MS),
+    });
+  } catch (err) {
+    return { ok: false, syncVariantId, network: true, message: err.message };
+  }
+  if (!res.ok) {
+    return { ok: false, syncVariantId, status: res.status };
+  }
+  const data = await res.json().catch(() => ({}));
+  const variantId = data?.result?.sync_variant?.variant_id;
+  if (!Number.isFinite(variantId)) {
+    return { ok: false, syncVariantId, status: 404, reason: 'no_variant_id_in_response' };
+  }
+  return { ok: true, syncVariantId, variantId };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'method_not_allowed' });
@@ -76,13 +101,32 @@ export default async function handler(req, res) {
     city: body.city ? String(body.city).slice(0, 60) : undefined,
   };
 
-  // Printful expects { recipient, items: [{ sync_variant_id, quantity }] }.
+  // Resolve sync_variant_id → catalog variant_id in parallel (Printful's
+  // /shipping/rates requires the catalog id). Bail with a precise error code
+  // if any item can't be resolved so the client can surface the right message.
+  const resolved = await Promise.all(items.map(li => fetchVariantIdForSync(li.sync_variant_id)));
+  const networkFail = resolved.find(r => !r.ok && r.network);
+  if (networkFail) {
+    console.error(`[shipping-rates] Variant lookup network error for ${networkFail.syncVariantId}:`, networkFail.message);
+    return res.status(502).json({ error: 'printful_unreachable' });
+  }
+  const notFound = resolved.find(r => !r.ok);
+  if (notFound) {
+    console.warn(`[shipping-rates] Sync variant ${notFound.syncVariantId} not resolvable (status=${notFound.status} reason=${notFound.reason || 'http_error'})`);
+    return res.status(404).json({ error: 'variant_not_found', sync_variant_id: notFound.syncVariantId });
+  }
+
+  const pfItems = items.map((li, idx) => ({
+    variant_id: resolved[idx].variantId,
+    quantity: li.quantity,
+  }));
+
   let pfRes;
   try {
     pfRes = await fetch(`${PRINTFUL_BASE}/shipping/rates`, {
       method: 'POST',
       headers: pfHeaders(),
-      body: JSON.stringify({ recipient, items, currency: 'USD' }),
+      body: JSON.stringify({ recipient, items: pfItems, currency: 'USD' }),
       signal: AbortSignal.timeout(PRINTFUL_FETCH_TIMEOUT_MS),
     });
   } catch (err) {
@@ -92,7 +136,8 @@ export default async function handler(req, res) {
 
   const data = await pfRes.json().catch(() => ({}));
   if (!pfRes.ok) {
-    // Printful surfaces ZIP/state/country errors as 4xx; pass back a friendly code.
+    // Now that item ids are pre-resolved, a 400 here is almost always an
+    // address problem (bad ZIP/state/country combo). Pass back as invalid_address.
     const code = pfRes.status === 400 ? 'invalid_address' : 'printful_error';
     console.warn(`[shipping-rates] Printful ${pfRes.status}:`, data?.result || data?.error || '');
     return res.status(pfRes.status === 400 ? 400 : 502).json({
