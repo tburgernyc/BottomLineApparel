@@ -27,8 +27,11 @@ const PRINTFUL_FETCH_TIMEOUT_MS = 8000;
 // 'klarna' enables BNPL for apparel (mainstream in 2026).
 const PAYMENT_METHOD_TYPES = ['card', 'link', 'klarna'];
 // Stripe Tax product tax code for apparel.
-// See https://docs.stripe.com/tax/tax-codes — txcd_30060003 = "Clothing — General".
-const APPAREL_TAX_CODE = 'txcd_30060003';
+// txcd_30011000 = "Clothing & Footwear" — the correct general apparel code.
+// It applies state-by-state clothing exemptions automatically (e.g. NY's
+// clothing-under-$110 exemption), which a generic "tangible goods" code wouldn't.
+// See https://docs.stripe.com/tax/tax-codes
+const APPAREL_TAX_CODE = 'txcd_30011000';
 
 function pfHeaders() {
   const headers = {
