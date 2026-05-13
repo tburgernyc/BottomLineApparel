@@ -18,19 +18,36 @@
 //   - 'fulfilled'                — Printful order created successfully
 //   - 'fulfillment_failed'       — non-retryable Printful failure; admin alerted
 
-import { kv } from '@vercel/kv';
+import { createClient } from '@vercel/kv';
 
 const TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days — enough for support / chargebacks
+
+// Resolve from either env var pair: legacy Vercel KV names
+// (KV_REST_API_URL / KV_REST_API_TOKEN) or the newer Vercel marketplace +
+// Upstash integration names (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN).
+// Same underlying Upstash store either way.
+function resolveKvEnv() {
+  return {
+    url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
+    token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  };
+}
+
+let _kv = null;
+function getKv() {
+  if (_kv) return _kv;
+  const { url, token } = resolveKvEnv();
+  if (!url || !token) return null;
+  _kv = createClient({ url, token });
+  return _kv;
+}
 
 function key(sessionId) {
   return `orders:${sessionId}`;
 }
 
 function isConfigured() {
-  // @vercel/kv reads KV_REST_API_URL / KV_REST_API_TOKEN from process.env at
-  // call time. When unset (local dev without KV linked) we degrade to no-ops
-  // so the webhook still completes the Printful side.
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return Boolean(getKv());
 }
 
 export async function recordOrderInitial(session, items) {
@@ -53,7 +70,7 @@ export async function recordOrderInitial(session, items) {
     fulfillment_attempts: [],
   };
   try {
-    await kv.set(key(session.id), record, { ex: TTL_SECONDS });
+    await getKv().set(key(session.id), record, { ex: TTL_SECONDS });
     return record;
   } catch (err) {
     console.error('[_orders] Failed to write initial record:', err.message);
@@ -64,7 +81,7 @@ export async function recordOrderInitial(session, items) {
 export async function recordOrderFulfilled(sessionId, { printfulOrderId, printfulExternalId }) {
   if (!isConfigured()) return null;
   try {
-    const existing = (await kv.get(key(sessionId))) || {};
+    const existing = (await getKv().get(key(sessionId))) || {};
     const now = new Date().toISOString();
     const updated = {
       ...existing,
@@ -77,7 +94,7 @@ export async function recordOrderFulfilled(sessionId, { printfulOrderId, printfu
         { at: now, ok: true },
       ],
     };
-    await kv.set(key(sessionId), updated, { ex: TTL_SECONDS });
+    await getKv().set(key(sessionId), updated, { ex: TTL_SECONDS });
     return updated;
   } catch (err) {
     console.error('[_orders] Failed to record fulfilled:', err.message);
@@ -88,7 +105,7 @@ export async function recordOrderFulfilled(sessionId, { printfulOrderId, printfu
 export async function recordOrderFailure(sessionId, { error, retryable, details }) {
   if (!isConfigured()) return null;
   try {
-    const existing = (await kv.get(key(sessionId))) || {};
+    const existing = (await getKv().get(key(sessionId))) || {};
     const now = new Date().toISOString();
     const attempts = [
       ...(existing.fulfillment_attempts || []),
@@ -103,7 +120,7 @@ export async function recordOrderFailure(sessionId, { error, retryable, details 
       updated_at: now,
       fulfillment_attempts: attempts,
     };
-    await kv.set(key(sessionId), updated, { ex: TTL_SECONDS });
+    await getKv().set(key(sessionId), updated, { ex: TTL_SECONDS });
     return updated;
   } catch (err) {
     console.error('[_orders] Failed to record failure:', err.message);
@@ -114,7 +131,7 @@ export async function recordOrderFailure(sessionId, { error, retryable, details 
 export async function recordEmailSent(sessionId, kind, ok, error) {
   if (!isConfigured()) return null;
   try {
-    const existing = (await kv.get(key(sessionId))) || {};
+    const existing = (await getKv().get(key(sessionId))) || {};
     const now = new Date().toISOString();
     const updated = {
       ...existing,
@@ -124,7 +141,7 @@ export async function recordEmailSent(sessionId, kind, ok, error) {
         { at: now, kind, ok: Boolean(ok), error: error ? String(error) : undefined },
       ],
     };
-    await kv.set(key(sessionId), updated, { ex: TTL_SECONDS });
+    await getKv().set(key(sessionId), updated, { ex: TTL_SECONDS });
     return updated;
   } catch (err) {
     console.error('[_orders] Failed to record email:', err.message);
@@ -135,7 +152,7 @@ export async function recordEmailSent(sessionId, kind, ok, error) {
 export async function getOrder(sessionId) {
   if (!isConfigured()) return null;
   try {
-    return await kv.get(key(sessionId));
+    return await getKv().get(key(sessionId));
   } catch (err) {
     console.error('[_orders] Failed to read order:', err.message);
     return null;
